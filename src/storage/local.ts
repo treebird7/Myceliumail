@@ -1,0 +1,175 @@
+/**
+ * Local JSON Storage Adapter
+ * 
+ * Stores messages in a local JSON file for offline/testing use.
+ */
+
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+import { randomUUID } from 'crypto';
+import type { Message, InboxOptions } from '../types/index.js';
+
+const DATA_DIR = join(homedir(), '.myceliumail', 'data');
+const MESSAGES_FILE = join(DATA_DIR, 'messages.json');
+
+interface StoredMessage extends Omit<Message, 'createdAt'> {
+    createdAt: string;
+}
+
+/**
+ * Ensure data directory exists
+ */
+function ensureDataDir(): void {
+    if (!existsSync(DATA_DIR)) {
+        mkdirSync(DATA_DIR, { recursive: true });
+    }
+}
+
+/**
+ * Load all messages from storage
+ */
+function loadMessages(): StoredMessage[] {
+    if (!existsSync(MESSAGES_FILE)) return [];
+    try {
+        return JSON.parse(readFileSync(MESSAGES_FILE, 'utf-8'));
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Save messages to storage
+ */
+function saveMessages(messages: StoredMessage[]): void {
+    ensureDataDir();
+    writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+}
+
+/**
+ * Convert stored message to Message type
+ */
+function toMessage(stored: StoredMessage): Message {
+    return {
+        ...stored,
+        createdAt: new Date(stored.createdAt),
+    };
+}
+
+/**
+ * Send a message (store locally)
+ */
+export async function sendMessage(
+    sender: string,
+    recipient: string,
+    subject: string,
+    body: string,
+    options?: {
+        encrypted?: boolean;
+        ciphertext?: string;
+        nonce?: string;
+        senderPublicKey?: string;
+    }
+): Promise<Message> {
+    const messages = loadMessages();
+
+    const newMessage: StoredMessage = {
+        id: randomUUID(),
+        sender,
+        recipient,
+        subject: options?.encrypted ? '' : subject,
+        body: options?.encrypted ? '' : body,
+        encrypted: options?.encrypted || false,
+        ciphertext: options?.ciphertext,
+        nonce: options?.nonce,
+        senderPublicKey: options?.senderPublicKey,
+        read: false,
+        archived: false,
+        createdAt: new Date().toISOString(),
+    };
+
+    messages.push(newMessage);
+    saveMessages(messages);
+
+    return toMessage(newMessage);
+}
+
+/**
+ * Get inbox messages for an agent
+ */
+export async function getInbox(agentId: string, options?: InboxOptions): Promise<Message[]> {
+    const messages = loadMessages();
+
+    let filtered = messages.filter(m =>
+        m.recipient === agentId && !m.archived
+    );
+
+    if (options?.unreadOnly) {
+        filtered = filtered.filter(m => !m.read);
+    }
+
+    // Sort by date descending (newest first)
+    filtered.sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    if (options?.limit) {
+        filtered = filtered.slice(0, options.limit);
+    }
+
+    return filtered.map(toMessage);
+}
+
+/**
+ * Get a specific message by ID
+ */
+export async function getMessage(id: string): Promise<Message | null> {
+    const messages = loadMessages();
+    const found = messages.find(m => m.id === id);
+    return found ? toMessage(found) : null;
+}
+
+/**
+ * Mark message as read
+ */
+export async function markAsRead(id: string): Promise<boolean> {
+    const messages = loadMessages();
+    const index = messages.findIndex(m => m.id === id);
+    if (index === -1) return false;
+
+    messages[index].read = true;
+    saveMessages(messages);
+    return true;
+}
+
+/**
+ * Archive a message
+ */
+export async function archiveMessage(id: string): Promise<boolean> {
+    const messages = loadMessages();
+    const index = messages.findIndex(m => m.id === id);
+    if (index === -1) return false;
+
+    messages[index].archived = true;
+    saveMessages(messages);
+    return true;
+}
+
+/**
+ * Get sent messages
+ */
+export async function getSent(agentId: string, limit?: number): Promise<Message[]> {
+    const messages = loadMessages();
+
+    let filtered = messages.filter(m => m.sender === agentId);
+
+    filtered.sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    if (limit) {
+        filtered = filtered.slice(0, limit);
+    }
+
+    return filtered.map(toMessage);
+}

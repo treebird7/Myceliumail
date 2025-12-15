@@ -1,0 +1,257 @@
+/**
+ * Myceliumail MCP - Storage Module
+ * 
+ * Local JSON storage with optional Supabase sync.
+ */
+
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
+import { randomUUID } from 'crypto';
+import { getSupabaseUrl, getSupabaseKey, hasSupabase } from './config.js';
+
+const DATA_DIR = join(homedir(), '.myceliumail', 'data');
+const MESSAGES_FILE = join(DATA_DIR, 'messages.json');
+
+export interface Message {
+    id: string;
+    sender: string;
+    recipient: string;
+    subject: string;
+    body: string;
+    encrypted: boolean;
+    ciphertext?: string;
+    nonce?: string;
+    senderPublicKey?: string;
+    read: boolean;
+    archived: boolean;
+    createdAt: Date;
+}
+
+interface StoredMessage extends Omit<Message, 'createdAt'> {
+    createdAt: string;
+}
+
+function ensureDataDir(): void {
+    if (!existsSync(DATA_DIR)) {
+        mkdirSync(DATA_DIR, { recursive: true });
+    }
+}
+
+function loadLocalMessages(): StoredMessage[] {
+    if (!existsSync(MESSAGES_FILE)) return [];
+    try {
+        return JSON.parse(readFileSync(MESSAGES_FILE, 'utf-8'));
+    } catch {
+        return [];
+    }
+}
+
+function saveLocalMessages(messages: StoredMessage[]): void {
+    ensureDataDir();
+    writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+}
+
+function toMessage(stored: StoredMessage): Message {
+    return { ...stored, createdAt: new Date(stored.createdAt) };
+}
+
+// Supabase helpers
+async function supabaseRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const url = `${getSupabaseUrl()}/rest/v1${path}`;
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            'apikey': getSupabaseKey()!,
+            'Authorization': `Bearer ${getSupabaseKey()}`,
+            'Prefer': options.method === 'POST' ? 'return=representation' : 'return=minimal',
+            ...options.headers,
+        },
+    });
+    if (!response.ok) throw new Error(await response.text());
+    if (response.status === 204) return {} as T;
+    return response.json() as Promise<T>;
+}
+
+export async function sendMessage(
+    sender: string,
+    recipient: string,
+    subject: string,
+    body: string,
+    options?: {
+        encrypted?: boolean;
+        ciphertext?: string;
+        nonce?: string;
+        senderPublicKey?: string;
+    }
+): Promise<Message> {
+    const newMessage: StoredMessage = {
+        id: randomUUID(),
+        sender,
+        recipient,
+        subject: options?.encrypted ? '' : subject,
+        body: options?.encrypted ? '' : body,
+        encrypted: options?.encrypted || false,
+        ciphertext: options?.ciphertext,
+        nonce: options?.nonce,
+        senderPublicKey: options?.senderPublicKey,
+        read: false,
+        archived: false,
+        createdAt: new Date().toISOString(),
+    };
+
+    if (hasSupabase()) {
+        try {
+            const [result] = await supabaseRequest<StoredMessage[]>('/agent_messages', {
+                method: 'POST',
+                body: JSON.stringify({
+                    sender: newMessage.sender,
+                    recipient: newMessage.recipient,
+                    subject: newMessage.subject || null,
+                    body: newMessage.body || null,
+                    encrypted: newMessage.encrypted,
+                    ciphertext: newMessage.ciphertext,
+                    nonce: newMessage.nonce,
+                    sender_public_key: newMessage.senderPublicKey,
+                }),
+            });
+            return toMessage({
+                ...newMessage,
+                id: (result as unknown as { id: string }).id
+            });
+        } catch {
+            // Fall through to local
+        }
+    }
+
+    // Local storage
+    const messages = loadLocalMessages();
+    messages.push(newMessage);
+    saveLocalMessages(messages);
+    return toMessage(newMessage);
+}
+
+export async function getInbox(
+    agentId: string,
+    options?: { unreadOnly?: boolean; limit?: number }
+): Promise<Message[]> {
+    if (hasSupabase()) {
+        try {
+            let query = `/agent_messages?recipient=eq.${agentId}&archived=eq.false&order=created_at.desc`;
+            if (options?.unreadOnly) query += '&read=eq.false';
+            if (options?.limit) query += `&limit=${options.limit}`;
+
+            const results = await supabaseRequest<Array<{
+                id: string; sender: string; recipient: string;
+                subject: string; body: string; encrypted: boolean;
+                ciphertext: string; nonce: string; sender_public_key: string;
+                read: boolean; archived: boolean; created_at: string;
+            }>>(query);
+
+            return results.map(r => ({
+                id: r.id,
+                sender: r.sender,
+                recipient: r.recipient,
+                subject: r.subject || '',
+                body: r.body || '',
+                encrypted: r.encrypted,
+                ciphertext: r.ciphertext,
+                nonce: r.nonce,
+                senderPublicKey: r.sender_public_key,
+                read: r.read,
+                archived: r.archived,
+                createdAt: new Date(r.created_at),
+            }));
+        } catch {
+            // Fall through to local
+        }
+    }
+
+    // Local storage
+    const messages = loadLocalMessages();
+    let filtered = messages.filter(m => m.recipient === agentId && !m.archived);
+    if (options?.unreadOnly) filtered = filtered.filter(m => !m.read);
+    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (options?.limit) filtered = filtered.slice(0, options.limit);
+    return filtered.map(toMessage);
+}
+
+export async function getMessage(id: string): Promise<Message | null> {
+    if (hasSupabase()) {
+        try {
+            const results = await supabaseRequest<Array<{
+                id: string; sender: string; recipient: string;
+                subject: string; body: string; encrypted: boolean;
+                ciphertext: string; nonce: string; sender_public_key: string;
+                read: boolean; archived: boolean; created_at: string;
+            }>>(`/agent_messages?id=eq.${id}`);
+
+            if (results.length > 0) {
+                const r = results[0];
+                return {
+                    id: r.id,
+                    sender: r.sender,
+                    recipient: r.recipient,
+                    subject: r.subject || '',
+                    body: r.body || '',
+                    encrypted: r.encrypted,
+                    ciphertext: r.ciphertext,
+                    nonce: r.nonce,
+                    senderPublicKey: r.sender_public_key,
+                    read: r.read,
+                    archived: r.archived,
+                    createdAt: new Date(r.created_at),
+                };
+            }
+        } catch {
+            // Fall through
+        }
+    }
+
+    const messages = loadLocalMessages();
+    const found = messages.find(m => m.id === id);
+    return found ? toMessage(found) : null;
+}
+
+export async function markAsRead(id: string): Promise<boolean> {
+    if (hasSupabase()) {
+        try {
+            await supabaseRequest(`/agent_messages?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ read: true }),
+            });
+            return true;
+        } catch {
+            // Fall through
+        }
+    }
+
+    const messages = loadLocalMessages();
+    const idx = messages.findIndex(m => m.id === id);
+    if (idx === -1) return false;
+    messages[idx].read = true;
+    saveLocalMessages(messages);
+    return true;
+}
+
+export async function archiveMessage(id: string): Promise<boolean> {
+    if (hasSupabase()) {
+        try {
+            await supabaseRequest(`/agent_messages?id=eq.${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ archived: true }),
+            });
+            return true;
+        } catch {
+            // Fall through
+        }
+    }
+
+    const messages = loadLocalMessages();
+    const idx = messages.findIndex(m => m.id === id);
+    if (idx === -1) return false;
+    messages[idx].archived = true;
+    saveLocalMessages(messages);
+    return true;
+}
