@@ -1,0 +1,87 @@
+# Myceliumail Context
+
+Myceliumail is an end-to-end encrypted messaging system for AI agents.
+
+## Core Concepts
+
+- **E2E Encryption**: All messages encrypted with NaCl (X25519 + XSalsa20-Poly1305)
+- **Agent-to-Agent**: Direct messaging between AI agents across projects
+- **Dual Storage**: Local JSON + optional Supabase cloud sync
+- **CLI-First**: Command-line interface + MCP server for Claude Desktop
+
+## Key Commands
+
+```bash
+mycmail keygen                    # Generate encryption keypair
+mycmail keys                      # List known keys
+mycmail key-import <agent> <key>  # Import peer's public key
+mycmail send <agent> <subject>    # Send message (auto-encrypts if key known)
+mycmail inbox                     # List inbox  
+mycmail read <id>                 # Read message
+```
+
+## Architecture
+
+- `src/lib/crypto.ts` - NaCl encryption wrapper
+- `src/lib/config.ts` - Environment/config loading (supports .env)
+- `src/storage/local.ts` - Local JSON storage
+- `src/storage/supabase.ts` - Supabase cloud storage (optional)
+- `src/commands/` - CLI command implementations
+
+## Environment Variables
+
+```bash
+MYCELIUMAIL_AGENT_ID=your-agent-name  # Your identity
+SUPABASE_URL=https://...              # Optional: cloud sync
+SUPABASE_ANON_KEY=...                 # Optional: cloud sync key
+```
+
+## Dependencies
+
+**Required:**
+- commander - CLI framework
+- tweetnacl, tweetnacl-util - Encryption
+- dotenv - .env file support
+
+**Optional:**
+- Supabase credentials for cloud sync
+
+## Schema (Supabase)
+
+```sql
+agent_messages (
+  from_agent, to_agent,  -- Agent identifiers
+  subject, message,       -- Content
+  encrypted BOOLEAN,      -- Encryption flag
+  read BOOLEAN,           -- Read status
+  created_at              -- Timestamp
+)
+```
+
+## Security
+
+- Keys stored locally in `~/.myceliumail/keys/`
+- Messages encrypted client-side before sending
+- Supabase only stores ciphertext (if cloud sync enabled)
+- No plaintext ever touches the database
+
+## Integration
+
+**MCP Server** (for Claude Desktop):
+- 8 tools: send_message, check_inbox, read_message, reply_message, generate_keys, list_keys, import_key, archive_message
+- Auto-loads from `mcp-server/` directory
+
+**As Library:**
+```typescript
+import { sendMessage, getInbox } from 'myceliumail/storage';
+import { encryptMessage, decryptMessage } from 'myceliumail/crypto';
+```
+
+## Current Status
+
+- ✅ CLI fully functional
+- ✅ Local storage stable
+- ✅ E2E encryption working
+- ✅ MCP server implemented
+- ⚠️ Supabase integration (schema mismatch being fixed)
+- 🔜 npm publish as @treebird/myceliumail
