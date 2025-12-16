@@ -273,11 +273,20 @@ let replyToRecipient = '';
 let replyToSubject = '';
 
 function showReplyForm(msgId, sender) {
-    replyToRecipient = sender;
+    // If replying to a message you sent, the reply should go back to the recipient
+    // But we don't have that info easily, so just warn
+    if (sender === currentAgentId) {
+        const actualRecipient = prompt(`You sent this message. Who should the reply go to?`, sender);
+        if (!actualRecipient) return;
+        replyToRecipient = actualRecipient;
+    } else {
+        replyToRecipient = sender;
+    }
+
     const currentMsg = document.querySelector('h1').textContent;
     replyToSubject = currentMsg.startsWith('Re:') ? currentMsg : `Re: ${currentMsg}`;
 
-    document.getElementById('reply-to').textContent = sender;
+    document.getElementById('reply-to').textContent = replyToRecipient;
     document.getElementById('reply-form').classList.remove('hidden');
     document.getElementById('reply-body').focus();
 }
@@ -318,7 +327,8 @@ async function sendReply() {
     }
 
     try {
-        await fetch('/api/send', {
+        console.log('Sending reply to:', replyToRecipient, 'from:', from);
+        const response = await fetch('/api/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -330,11 +340,19 @@ async function sendReply() {
             })
         });
 
+        const result = await response.json();
+        console.log('Reply result:', result);
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to send');
+        }
+
         hideReplyForm();
         alert('Reply sent!' + (attachments.length > 0 ? ` (${attachments.length} attachment(s))` : ''));
         loadInbox(true);
     } catch (err) {
-        alert('Failed to send reply');
+        console.error('Send reply error:', err);
+        alert('Failed to send reply: ' + err.message);
     }
 }
 

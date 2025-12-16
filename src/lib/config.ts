@@ -15,6 +15,7 @@ export interface Config {
     agentId: string;
     supabaseUrl?: string;
     supabaseKey?: string;
+    storageMode: 'auto' | 'supabase' | 'local';
 }
 
 /**
@@ -34,6 +35,7 @@ export function loadConfig(): Config {
     const envAgentId = process.env.MYCELIUMAIL_AGENT_ID || process.env.MYCELIUMAIL_AGENT;
     const envSupabaseUrl = process.env.SUPABASE_URL;
     const envSupabaseKey = process.env.SUPABASE_ANON_KEY;
+    const envStorageMode = process.env.MYCELIUMAIL_STORAGE as 'auto' | 'supabase' | 'local' | undefined;
 
     // Try to load from config file
     let fileConfig: Partial<Config> = {};
@@ -45,6 +47,7 @@ export function loadConfig(): Config {
                 agentId: parsed.agent_id,
                 supabaseUrl: parsed.supabase_url,
                 supabaseKey: parsed.supabase_key,
+                storageMode: parsed.storage_mode,
             };
         } catch {
             // Invalid config file, ignore
@@ -56,6 +59,7 @@ export function loadConfig(): Config {
         agentId: envAgentId || fileConfig.agentId || 'anonymous',
         supabaseUrl: envSupabaseUrl || fileConfig.supabaseUrl,
         supabaseKey: envSupabaseKey || fileConfig.supabaseKey,
+        storageMode: envStorageMode || fileConfig.storageMode || 'auto',
     };
 
     return config;

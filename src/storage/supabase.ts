@@ -17,7 +17,22 @@ interface SupabaseClient {
 
 function createClient(): SupabaseClient | null {
     const config = loadConfig();
-    if (!hasSupabaseConfig(config)) return null;
+
+    // Force local storage if mode is 'local'
+    if (config.storageMode === 'local') {
+        return null;
+    }
+
+    // Check if Supabase is configured
+    if (!hasSupabaseConfig(config)) {
+        // Error if mode is 'supabase' but not configured
+        if (config.storageMode === 'supabase') {
+            console.error('❌ MYCELIUMAIL_STORAGE=supabase but Supabase not configured!');
+            console.error('   Set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.');
+        }
+        return null;
+    }
+
     return {
         url: config.supabaseUrl!,
         key: config.supabaseKey!,
