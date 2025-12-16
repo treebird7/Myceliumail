@@ -1,6 +1,8 @@
-# Myceliumail MCP Server
+# 🍄 Myceliumail MCP Server
 
 > **Connect Myceliumail to Claude Desktop and other MCP clients**
+
+<img src="assets/icon.png" alt="Myceliumail" width="128" />
 
 ## Quick Start
 
@@ -127,3 +129,15 @@ To enable cross-agent messaging via cloud:
 **Encryption not working**
 - Generate keys first: use `generate_keys` tool
 - Import peer's key: use `import_key` tool
+
+---
+
+## Uninstalling
+
+Remove the `myceliumail` entry from your Claude Desktop config:
+
+**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`  
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+
+Then restart Claude Desktop.
+
