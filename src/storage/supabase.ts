@@ -71,7 +71,7 @@ async function supabaseRequest<T>(
  */
 export async function sendMessage(
     sender: string,
-    recipient: string,
+    recipient: string | string[],
     subject: string,
     body: string,
     options?: {

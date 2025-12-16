@@ -91,10 +91,10 @@ export async function registerRoutes(fastify: FastifyInstance) {
         return { success: deleted };
     });
 
-    // POST /api/send - Send a new message
+    // POST /api/send - Send a new message (supports multi-recipient)
     fastify.post('/api/send', async (request, reply) => {
         const { to, subject, body, from, attachments } = request.body as {
-            to: string;
+            to: string | string[];
             subject: string;
             body: string;
             from?: string;

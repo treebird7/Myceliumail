@@ -61,7 +61,7 @@ function toMessage(stored: StoredMessage): Message {
  */
 export async function sendMessage(
     sender: string,
-    recipient: string,
+    recipient: string | string[],
     subject: string,
     body: string,
     options?: {
@@ -74,10 +74,15 @@ export async function sendMessage(
 ): Promise<Message> {
     const messages = loadMessages();
 
+    // Handle multi-recipient
+    const recipientList = Array.isArray(recipient) ? recipient : [recipient];
+    const primaryRecipient = recipientList[0];
+
     const newMessage: StoredMessage = {
         id: randomUUID(),
         sender,
-        recipient,
+        recipient: primaryRecipient,
+        recipients: recipientList.length > 1 ? recipientList : undefined,
         subject: options?.encrypted ? '' : subject,
         body: options?.encrypted ? '' : body,
         encrypted: options?.encrypted || false,
@@ -104,7 +109,9 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
 
     let filtered = agentId === 'all'
         ? messages.filter(m => !m.archived)
-        : messages.filter(m => m.recipient === agentId && !m.archived);
+        : messages.filter(m =>
+            (m.recipient === agentId || m.recipients?.includes(agentId)) && !m.archived
+        );
 
     if (options?.unreadOnly) {
         filtered = filtered.filter(m => !m.read);

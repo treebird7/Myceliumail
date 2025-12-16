@@ -12,15 +12,16 @@ export interface Attachment {
 export interface Message {
     id: string;
     sender: string;
-    recipient: string;
+    recipient: string;            // Primary recipient (for backwards compat)
+    recipients?: string[];        // Multi-recipient support
     subject: string;
     body: string;
     encrypted: boolean;
     ciphertext?: string;
     nonce?: string;
     senderPublicKey?: string;
-    read?: boolean;           // Legacy - kept for backwards compat
-    readBy?: string[];        // New: array of agents who read this
+    read?: boolean;               // Legacy - kept for backwards compat
+    readBy?: string[];            // Array of agents who read this
     archived: boolean;
     attachments?: Attachment[];
     createdAt: Date;
