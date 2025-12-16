@@ -41,7 +41,7 @@ Add to Watson's MCP config:
     "myceliumail": {
       "env": {
         "MYCELIUMAIL_AGENT_ID": "claude-desktop",
-        "SUPABASE_URL": "https://ruvwundetxnzesrbkdzr.supabase.co",
+        "SUPABASE_URL": "https://your-project.supabase.co",
         "SUPABASE_ANON_KEY": "<staging-key>"
       }
     }

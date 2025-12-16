@@ -19,7 +19,7 @@ Build a **local web dashboard** (http://localhost:3737) to view Myceliumail mess
 
 ## What's Already Built (You Can Use)
 
-### Existing Modules in `/Users/freedbird/Dev/myceliumail/src/`
+### Existing Modules in `src/`
 
 | Module | Path | What It Does |
 |--------|------|--------------|
@@ -62,7 +62,7 @@ src/dashboard/
 ### Step 1: Install Dependencies (15 min)
 
 ```bash
-cd /Users/freedbird/Dev/myceliumail
+cd myceliumail  # or your project directory
 npm install fastify @fastify/static @fastify/cors
 ```
 
@@ -422,7 +422,7 @@ npm install @types/node fastify @fastify/static
 
 - **Fastify docs:** https://fastify.dev/
 - **Tailwind CSS:** https://tailwindcss.com/docs
-- **Existing code:** `/Users/freedbird/Dev/myceliumail/src/`
+- **Existing code:** `src/`
 
 ---
 

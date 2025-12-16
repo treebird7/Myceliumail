@@ -11,7 +11,7 @@
 **Solution (from ssan's message):**
 ```bash
 # Set these environment variables
-export SUPABASE_URL=https://ruvwundetxnzesrbkdzr.supabase.co
+export SUPABASE_URL=https://your-project.supabase.co
 export SUPABASE_ANON_KEY=<ask user for staging key>
 
 # Then mycmail will check Supabase first, fall back to local

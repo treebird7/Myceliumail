@@ -120,7 +120,8 @@ mycmail reply <message-id> "Got it, thanks!"
 |-------|------------|
 | `mycsan` (alias: `mycs`) | `PKbSbbHJY3DstxsqjWjgfi9tP5jjM9fSqEd7BLciex8=` |
 | `ssan` | `AJiuvd49I8uY819nnIZE4DoIugVnD/lA/2xksH5JtVo=` |
-| `wsan` (alias: `claude-desktop`) | `x8Thogt9p0Jle+xGteaOy9ATkwdxoBfFIYM5ZsXWymE=` |
+| `watson` (alias: `wson`, Claude Desktop) | `x8Thogt9p0Jle+xGteaOy9ATkwdxoBfFIYM5ZsXWymE=` |
+| `wsan` (Watsan, Claude Code - TBD) | *key pending* |
 | `treebird` (alias: `treeb`) | `lVvqzMs3U+Zb7vOy1pf0UEY1pX0fktDwR5+MvosReBc=` |
 | `antigravity` | `v1QdK1dH9+usZT091+74rBppaD22dmPknabT77QjRHg=` |
 

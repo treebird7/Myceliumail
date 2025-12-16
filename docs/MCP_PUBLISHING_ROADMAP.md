@@ -20,8 +20,8 @@
 Schema provided by ssan - apply to enable cloud sync:
 
 ```bash
-# Use staging first
-SUPABASE_URL=https://ruvwundetxnzesrbkdzr.supabase.co
+# Configure your Supabase project
+SUPABASE_URL=https://your-project.supabase.co
 ```
 
 - [ ] Apply migration from ssan's message

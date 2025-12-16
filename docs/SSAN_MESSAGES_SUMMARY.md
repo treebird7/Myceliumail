@@ -4,7 +4,7 @@
 
 ### 1. ✅ Supabase Staging Credentials
 ```bash
-SUPABASE_URL_STAGING=https://ruvwundetxnzesrbkdzr.supabase.co
+SUPABASE_URL_STAGING=https://your-project.supabase.co
 SUPABASE_KEY_STAGING=sb_publishable_p6B4eM5agbPkuxx2cZ0lmQ_oCxdlfBY
 ```
 
@@ -50,7 +50,7 @@ Priority order:
 ### 1. Enable Supabase (NOW)
 ```bash
 # Add to your shell config or .env
-export SUPABASE_URL=https://ruvwundetxnzesrbkdzr.supabase.co
+export SUPABASE_URL=https://your-project.supabase.co
 export SUPABASE_ANON_KEY=sb_publishable_p6B4eM5agbPkuxx2cZ0lmQ_oCxdlfBY
 export MYCELIUMAIL_AGENT_ID=mycsan
 

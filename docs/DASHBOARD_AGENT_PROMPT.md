@@ -7,7 +7,7 @@
 Hi! I need you to build a web dashboard for Myceliumail.
 
 **Context:**
-- Project: `/Users/freedbird/Dev/myceliumail`
+- Project: `./` (clone from GitHub)
 - Read this first: `docs/DASHBOARD_AGENT_HANDOFF.md`
 - Follow roadmap: `docs/DASHBOARD_BUILD_ROADMAP.md`
 

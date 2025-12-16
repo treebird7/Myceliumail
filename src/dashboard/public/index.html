@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>🍄 Myceliumail Dashboard</title>
@@ -20,13 +21,16 @@
         }
     </script>
 </head>
+
 <body class="bg-gray-950 text-gray-100 min-h-screen">
     <div class="container mx-auto p-6 h-screen flex flex-col">
         <!-- Header -->
         <header class="flex justify-between items-center mb-6 shrink-0">
             <div class="flex items-center gap-3">
                 <span class="text-4xl">🍄</span>
-                <h1 class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">Myceliumail</h1>
+                <h1
+                    class="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-600 bg-clip-text text-transparent">
+                    Myceliumail</h1>
             </div>
             <div id="stats" class="text-sm text-gray-400 bg-gray-900 px-4 py-2 rounded-full border border-gray-800">
                 Loading...
@@ -37,8 +41,14 @@
         <div class="grid grid-cols-12 gap-6 flex-1 min-h-0">
             <!-- Inbox List -->
             <div class="col-span-4 bg-gray-900 rounded-xl border border-gray-800 flex flex-col overflow-hidden">
-                <div class="p-4 border-b border-gray-800 bg-gray-900/50 backdrop-blur">
+                <div
+                    class="p-4 border-b border-gray-800 bg-gray-900/50 backdrop-blur flex items-center justify-between">
                     <h2 class="text-xl font-semibold text-gray-200">Inbox</h2>
+                    <button onclick="loadInbox(false)"
+                        class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                        title="Refresh inbox">
+                        🔄
+                    </button>
                 </div>
                 <div id="inbox-list" class="flex-1 overflow-y-auto p-2 space-y-2">
                     <!-- Messages will act here -->
@@ -46,7 +56,8 @@
             </div>
 
             <!-- Message Detail -->
-            <div class="col-span-8 bg-gray-900 rounded-xl border border-gray-800 flex flex-col overflow-hidden relative">
+            <div
+                class="col-span-8 bg-gray-900 rounded-xl border border-gray-800 flex flex-col overflow-hidden relative">
                 <div id="message-detail" class="flex-1 overflow-y-auto p-8">
                     <div class="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
                         <span class="text-6xl opacity-20">📨</span>
@@ -59,4 +70,5 @@
 
     <script src="/app.js"></script>
 </body>
+
 </html>
