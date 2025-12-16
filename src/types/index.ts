@@ -2,6 +2,13 @@
  * Myceliumail Type Definitions
  */
 
+export interface Attachment {
+    name: string;      // filename
+    type: string;      // MIME type
+    data: string;      // base64 encoded
+    size: number;      // original size in bytes
+}
+
 export interface Message {
     id: string;
     sender: string;
@@ -12,8 +19,10 @@ export interface Message {
     ciphertext?: string;
     nonce?: string;
     senderPublicKey?: string;
-    read: boolean;
+    read?: boolean;           // Legacy - kept for backwards compat
+    readBy?: string[];        // New: array of agents who read this
     archived: boolean;
+    attachments?: Attachment[];
     createdAt: Date;
 }
 

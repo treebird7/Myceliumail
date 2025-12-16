@@ -69,6 +69,7 @@ export async function sendMessage(
         ciphertext?: string;
         nonce?: string;
         senderPublicKey?: string;
+        attachments?: { name: string; type: string; data: string; size: number }[];
     }
 ): Promise<Message> {
     const messages = loadMessages();
@@ -83,6 +84,7 @@ export async function sendMessage(
         ciphertext: options?.ciphertext,
         nonce: options?.nonce,
         senderPublicKey: options?.senderPublicKey,
+        attachments: options?.attachments,
         read: false,
         archived: false,
         createdAt: new Date().toISOString(),
@@ -95,14 +97,14 @@ export async function sendMessage(
 }
 
 /**
- * Get inbox messages for an agent
+ * Get inbox messages for an agent (use 'all' for all messages)
  */
 export async function getInbox(agentId: string, options?: InboxOptions): Promise<Message[]> {
     const messages = loadMessages();
 
-    let filtered = messages.filter(m =>
-        m.recipient === agentId && !m.archived
-    );
+    let filtered = agentId === 'all'
+        ? messages.filter(m => !m.archived)
+        : messages.filter(m => m.recipient === agentId && !m.archived);
 
     if (options?.unreadOnly) {
         filtered = filtered.filter(m => !m.read);
@@ -130,14 +132,39 @@ export async function getMessage(id: string): Promise<Message | null> {
 }
 
 /**
- * Mark message as read
+ * Mark message as read by an agent
  */
-export async function markAsRead(id: string): Promise<boolean> {
+export async function markAsRead(id: string, agentId?: string): Promise<boolean> {
     const messages = loadMessages();
     const index = messages.findIndex(m => m.id === id);
     if (index === -1) return false;
 
+    // Initialize readBy if not present
+    if (!messages[index].readBy) {
+        messages[index].readBy = [];
+    }
+
+    // Add agent to readBy if provided and not already there
+    if (agentId && !messages[index].readBy!.includes(agentId)) {
+        messages[index].readBy!.push(agentId);
+    }
+
+    // Legacy compat
     messages[index].read = true;
+
+    saveMessages(messages);
+    return true;
+}
+
+/**
+ * Delete a message
+ */
+export async function deleteMessage(id: string): Promise<boolean> {
+    const messages = loadMessages();
+    const index = messages.findIndex(m => m.id === id);
+    if (index === -1) return false;
+
+    messages.splice(index, 1);
     saveMessages(messages);
     return true;
 }

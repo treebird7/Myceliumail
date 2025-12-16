@@ -170,6 +170,13 @@ export function getKnownKey(agentId: string): string | null {
 }
 
 /**
+ * Get all known keys
+ */
+export function getKnownKeys(): Record<string, string> {
+    return loadKnownKeys();
+}
+
+/**
  * Delete a known key
  */
 export function deleteKnownKey(agentId: string): boolean {

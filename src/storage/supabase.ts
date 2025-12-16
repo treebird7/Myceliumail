@@ -79,6 +79,7 @@ export async function sendMessage(
         ciphertext?: string;
         nonce?: string;
         senderPublicKey?: string;
+        attachments?: { name: string; type: string; data: string; size: number }[];
     }
 ): Promise<Message> {
     const client = createClient();
@@ -260,11 +261,11 @@ export async function getMessage(id: string): Promise<Message | null> {
 /**
  * Mark message as read
  */
-export async function markAsRead(id: string): Promise<boolean> {
+export async function markAsRead(id: string, agentId?: string): Promise<boolean> {
     const client = createClient();
 
     if (!client) {
-        return local.markAsRead(id);
+        return local.markAsRead(id, agentId);
     }
 
     try {
@@ -292,6 +293,26 @@ export async function archiveMessage(id: string): Promise<boolean> {
         await supabaseRequest(client, `/agent_messages?id=eq.${id}`, {
             method: 'PATCH',
             body: JSON.stringify({ archived: true }),
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Delete a message
+ */
+export async function deleteMessage(id: string): Promise<boolean> {
+    const client = createClient();
+
+    if (!client) {
+        return local.deleteMessage(id);
+    }
+
+    try {
+        await supabaseRequest(client, `/agent_messages?id=eq.${id}`, {
+            method: 'DELETE',
         });
         return true;
     } catch {
