@@ -116,4 +116,13 @@ export async function registerRoutes(fastify: FastifyInstance) {
             encrypted: messages.filter(m => m.encrypted).length
         };
     });
+
+    // GET /api/config - Provide config for frontend Realtime
+    fastify.get('/api/config', async (request, reply) => {
+        return {
+            agentId: config.agentId,
+            supabaseUrl: config.supabaseUrl,
+            supabaseKey: config.supabaseKey
+        };
+    });
 }

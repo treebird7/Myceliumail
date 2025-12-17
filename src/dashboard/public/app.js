@@ -1,6 +1,81 @@
 // Load inbox on page load
 let currentMessageId = null;
 let currentAgentId = 'treebird'; // Default viewer identity
+let supabaseClient = null;
+let realtimeChannel = null;
+
+// Request notification permission on load
+async function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+}
+
+// Show browser notification
+function showBrowserNotification(message) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        const preview = message.message?.substring(0, 100) || message.body?.substring(0, 100) || '';
+        const notification = new Notification(`📬 ${message.from_agent}: ${message.subject}`, {
+            body: preview,
+            icon: '🍄',
+            tag: message.id, // Prevent duplicate notifications
+        });
+
+        notification.onclick = () => {
+            window.focus();
+            viewMessage(message.id);
+        };
+    }
+}
+
+// Setup Supabase Realtime subscription
+async function setupRealtime() {
+    try {
+        // Fetch config from server
+        const res = await fetch('/api/config');
+        const config = await res.json();
+
+        if (!config.supabaseUrl || !config.supabaseKey) {
+            console.log('Supabase not configured, using polling only');
+            return;
+        }
+
+        const agentId = config.agentId || 'anonymous';
+        currentAgentId = agentId;
+        console.log('🍄 Setting up Realtime for', agentId);
+
+        supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
+
+        realtimeChannel = supabaseClient
+            .channel('dashboard-inbox')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'agent_messages',
+                    filter: `to_agent=eq.${agentId}`
+                },
+                (payload) => {
+                    console.log('📬 New message via Realtime:', payload.new.subject);
+                    showBrowserNotification(payload.new);
+                    loadInbox(true); // Refresh inbox to show new message
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Connected to Supabase Realtime');
+                    // Update UI to show we're connected
+                    const stats = document.getElementById('stats');
+                    if (stats && !stats.innerHTML.includes('🔴')) {
+                        stats.innerHTML = stats.innerHTML.replace('Loading...', '<span class="text-green-400">●</span> ' + stats.innerHTML);
+                    }
+                }
+            });
+    } catch (err) {
+        console.error('Failed to setup Realtime:', err);
+    }
+}
 
 async function loadInbox(preserveSelection = true) {
     try {
@@ -440,7 +515,9 @@ function updateStats(data) {
 }
 
 // Initial load
+requestNotificationPermission();
+setupRealtime();
 loadInbox();
 
-// Poll every 10 seconds for new messages
-setInterval(() => loadInbox(true), 10000);
+// Poll every 30 seconds as fallback (Realtime handles instant updates)
+setInterval(() => loadInbox(true), 30000);

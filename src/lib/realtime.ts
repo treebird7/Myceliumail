@@ -79,7 +79,9 @@ export function subscribeToMessages(
         )
         .subscribe((status, err) => {
             if (onStatus) {
-                onStatus(status as 'SUBSCRIBED' | 'CLOSED' | 'CHANNEL_ERROR' | 'TIMED_OUT', err);
+                // Only pass error if it exists and has meaningful content
+                const error = err && (err.message || err.toString()) ? err : undefined;
+                onStatus(status as 'SUBSCRIBED' | 'CLOSED' | 'CHANNEL_ERROR' | 'TIMED_OUT', error);
             }
         });
 
