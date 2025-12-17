@@ -106,10 +106,10 @@ export async function sendMessage(
             const [result] = await supabaseRequest<StoredMessage[]>('/agent_messages', {
                 method: 'POST',
                 body: JSON.stringify({
-                    sender: newMessage.sender,
-                    recipient: newMessage.recipient,
+                    from_agent: newMessage.sender,
+                    to_agent: newMessage.recipient,
                     subject: newMessage.subject || null,
-                    body: newMessage.body || null,
+                    message: newMessage.body || null,
                     encrypted: newMessage.encrypted,
                     ciphertext: newMessage.ciphertext,
                     nonce: newMessage.nonce,
@@ -138,29 +138,29 @@ export async function getInbox(
 ): Promise<Message[]> {
     if (hasSupabase()) {
         try {
-            let query = `/agent_messages?recipient=eq.${agentId}&archived=eq.false&order=created_at.desc`;
+            let query = `/agent_messages?to_agent=eq.${agentId}&order=created_at.desc`;
             if (options?.unreadOnly) query += '&read=eq.false';
             if (options?.limit) query += `&limit=${options.limit}`;
 
             const results = await supabaseRequest<Array<{
-                id: string; sender: string; recipient: string;
-                subject: string; body: string; encrypted: boolean;
+                id: string; from_agent: string; to_agent: string;
+                subject: string; message: string; encrypted: boolean;
                 ciphertext: string; nonce: string; sender_public_key: string;
-                read: boolean; archived: boolean; created_at: string;
+                read: boolean; created_at: string;
             }>>(query);
 
             return results.map(r => ({
                 id: r.id,
-                sender: r.sender,
-                recipient: r.recipient,
+                sender: r.from_agent,
+                recipient: r.to_agent,
                 subject: r.subject || '',
-                body: r.body || '',
+                body: r.message || '',
                 encrypted: r.encrypted,
                 ciphertext: r.ciphertext,
                 nonce: r.nonce,
                 senderPublicKey: r.sender_public_key,
                 read: r.read,
-                archived: r.archived,
+                archived: false,
                 createdAt: new Date(r.created_at),
             }));
         } catch {
@@ -181,26 +181,26 @@ export async function getMessage(id: string): Promise<Message | null> {
     if (hasSupabase()) {
         try {
             const results = await supabaseRequest<Array<{
-                id: string; sender: string; recipient: string;
-                subject: string; body: string; encrypted: boolean;
+                id: string; from_agent: string; to_agent: string;
+                subject: string; message: string; encrypted: boolean;
                 ciphertext: string; nonce: string; sender_public_key: string;
-                read: boolean; archived: boolean; created_at: string;
+                read: boolean; created_at: string;
             }>>(`/agent_messages?id=eq.${id}`);
 
             if (results.length > 0) {
                 const r = results[0];
                 return {
                     id: r.id,
-                    sender: r.sender,
-                    recipient: r.recipient,
+                    sender: r.from_agent,
+                    recipient: r.to_agent,
                     subject: r.subject || '',
-                    body: r.body || '',
+                    body: r.message || '',
                     encrypted: r.encrypted,
                     ciphertext: r.ciphertext,
                     nonce: r.nonce,
                     senderPublicKey: r.sender_public_key,
                     read: r.read,
-                    archived: r.archived,
+                    archived: false,
                     createdAt: new Date(r.created_at),
                 };
             }
