@@ -1,5 +1,7 @@
 /**
  * send command - Send a message to another agent
+ * 
+ * Messages are encrypted by default. Use --plaintext to send unencrypted.
  */
 
 import { Command } from 'commander';
@@ -14,11 +16,11 @@ import * as storage from '../storage/supabase.js';
 
 export function createSendCommand(): Command {
     return new Command('send')
-        .description('Send a message to another agent')
+        .description('Send a message to another agent (encrypted by default)')
         .argument('<recipient>', 'Recipient agent ID')
         .argument('<subject>', 'Message subject')
         .option('-m, --message <body>', 'Message body (or provide via stdin)')
-        .option('-e, --encrypt', 'Encrypt the message')
+        .option('-p, --plaintext', 'Send unencrypted (not recommended)')
         .action(async (recipient: string, subject: string, options) => {
             const config = loadConfig();
             const sender = config.agentId;
@@ -29,42 +31,41 @@ export function createSendCommand(): Command {
                 process.exit(1);
             }
 
-            const body = options.message || subject; // Use subject as body if no -m provided
-
+            const body = options.message || subject;
             let messageOptions;
+            let encrypted = false;
 
-            if (options.encrypt) {
-                // Check for our keypair
+            // Encrypt by default unless --plaintext is specified
+            if (!options.plaintext) {
                 const senderKeyPair = loadKeyPair(sender);
-                if (!senderKeyPair) {
-                    console.error('❌ No keypair found. Generate one first:');
-                    console.error('  mycmail keygen');
-                    process.exit(1);
-                }
-
-                // Check for recipient's public key
                 const recipientPubKeyB64 = getKnownKey(recipient);
-                if (!recipientPubKeyB64) {
-                    console.error(`❌ No public key found for ${recipient}`);
-                    console.error('Import their key first:');
-                    console.error(`  mycmail key-import ${recipient} <their-public-key>`);
-                    process.exit(1);
+
+                if (senderKeyPair && recipientPubKeyB64) {
+                    try {
+                        const recipientPubKey = decodePublicKey(recipientPubKeyB64);
+                        const payload = JSON.stringify({ subject, body });
+                        const encryptedData = encryptMessage(payload, recipientPubKey, senderKeyPair);
+
+                        messageOptions = {
+                            encrypted: true,
+                            ciphertext: encryptedData.ciphertext,
+                            nonce: encryptedData.nonce,
+                            senderPublicKey: encryptedData.senderPublicKey,
+                        };
+                        encrypted = true;
+                    } catch (err) {
+                        console.warn('⚠️  Encryption failed, sending plaintext:', (err as Error).message);
+                    }
+                } else {
+                    // Warn user but don't block
+                    if (!senderKeyPair) {
+                        console.warn('⚠️  No keypair found. Run: mycmail keygen');
+                    }
+                    if (!recipientPubKeyB64) {
+                        console.warn(`⚠️  No public key for ${recipient}. Run: mycmail key-import ${recipient} <key>`);
+                    }
+                    console.warn('   Sending as plaintext (use -p to suppress this warning)\n');
                 }
-
-                const recipientPubKey = decodePublicKey(recipientPubKeyB64);
-
-                // Encrypt the message
-                const payload = JSON.stringify({ subject, body });
-                const encrypted = encryptMessage(payload, recipientPubKey, senderKeyPair);
-
-                messageOptions = {
-                    encrypted: true,
-                    ciphertext: encrypted.ciphertext,
-                    nonce: encrypted.nonce,
-                    senderPublicKey: encrypted.senderPublicKey,
-                };
-
-                console.log('🔐 Message encrypted');
             }
 
             try {
@@ -79,9 +80,7 @@ export function createSendCommand(): Command {
                 console.log(`\n✅ Message sent to ${recipient}`);
                 console.log(`   ID: ${message.id}`);
                 console.log(`   Subject: ${subject}`);
-                if (options.encrypt) {
-                    console.log('   🔐 Encrypted: Yes');
-                }
+                console.log(`   ${encrypted ? '🔐 Encrypted' : '📨 Plaintext'}`);
             } catch (error) {
                 console.error('❌ Failed to send message:', error);
                 process.exit(1);
