@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "type": "module",
   "bin": {
-    "mycmail": "./dist/bin/myceliumail.js",
-    "myceliumail": "./dist/bin/myceliumail.js"
+    "mycmail": "dist/bin/myceliumail.js",
+    "myceliumail": "dist/bin/myceliumail.js"
   },
   "scripts": {
     "build": "tsc",

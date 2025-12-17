@@ -1,0 +1,31 @@
+# Exclude desktop app and large assets
+desktop/
+
+# Exclude MCP server (published separately)
+mcp-server/
+
+# Exclude documentation (use README.md only)
+docs/
+MYCELIUMAIL_STARTER_KIT.md
+COMPLETE.md
+NEXT_STEPS.md
+
+# Exclude source (dist is compiled)
+src/
+
+# Exclude development files
+*.ts
+!*.d.ts
+.eslintrc.json
+tsconfig.json
+.context7
+.env*
+!.env.example
+
+# Exclude supabase migrations
+supabase/
+
+# Exclude test files
+*.test.js
+*.spec.js
+__tests__/
