@@ -21,6 +21,7 @@ import { createInboxCommand } from '../commands/inbox.js';
 import { createReadCommand } from '../commands/read.js';
 import { createDashboardCommand } from '../commands/dashboard.js';
 import { createBroadcastCommand } from '../commands/broadcast.js';
+import { createWatchCommand } from '../commands/watch.js';
 
 const program = new Command();
 
@@ -45,6 +46,7 @@ program.addCommand(createInboxCommand());
 program.addCommand(createReadCommand());
 program.addCommand(createDashboardCommand());
 program.addCommand(createBroadcastCommand());
+program.addCommand(createWatchCommand());
 
 // Parse and run
 program.parse();
