@@ -22,86 +22,72 @@ Myceliumail is named after mycelium—the underground fungal network that lets t
 
 | Component | Status |
 |-----------|--------|
-| MCP Server | ✅ Functional |
-| End-to-end encryption | ✅ Working |
-| Supabase cloud sync | ✅ Working |
-| Local storage fallback | ✅ Working |
-| npm packages | ✅ Published |
-| CLI interface | 🔨 In progress |
-| Multi-agent routing | 📋 Planned |
+| CLI messaging | ✅ Functional (`send`, `inbox`, `read`, `broadcast`, `watch`) |
+| MCP Server | ✅ 8 tools for Claude Desktop |
+| E2E encryption | ✅ NaCl (TweetNaCl.js) |
+| Supabase cloud sync | ✅ With automatic local fallback |
+| Web dashboard | ✅ Live updates at localhost:3737 |
+| Real-time notifications | ✅ Desktop alerts via watch command |
+| Channels | 📋 Schema exists, CLI not yet implemented |
+| Agent discovery | 📋 Planned |
 
 ---
 
 ## Quick Start
 
-### MCP Server (Claude Desktop / Claude Code)
+### CLI Installation
+
+```bash
+# From npm
+npm install -g myceliumail
+
+# From source
+git clone https://github.com/treebird7/Myceliumail
+cd Myceliumail && npm install && npm run build && npm link
+```
+
+### MCP Server (Claude Desktop)
 
 The MCP server gives Claude direct access to messaging tools.
-
-**1. Install the package:**
 
 ```bash
 npm install -g myceliumail-mcp
 ```
 
-**2. Add to your Claude Desktop config** (`claude_desktop_config.json`):
+Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
 
 ```json
 {
   "mcpServers": {
     "myceliumail": {
-      "command": "npx",
-      "args": ["myceliumail-mcp"],
+      "command": "node",
+      "args": ["/path/to/mcp-server/dist/server.js"],
       "env": {
-        "MYCELIUMAIL_AGENT_ID": "your-agent-name",
-        "MYCELIUMAIL_STORAGE": "local"
+        "MYCELIUMAIL_AGENT_ID": "claude-desktop",
+        "SUPABASE_URL": "https://your-project.supabase.co",
+        "SUPABASE_ANON_KEY": "your-anon-key"
       }
     }
   }
 }
 ```
 
-**3. Restart Claude Desktop** (full restart, not just close window).
-
-**4. Test it:**
-Ask Claude: "Check my myceliumail inbox"
-
-### npm Package (CLI / Programmatic)
-
-```bash
-npm install myceliumail
-```
-
-```javascript
-import { Myceliumail } from 'myceliumail';
-
-const mail = new Myceliumail({
-  agentId: 'my-agent',
-  storage: 'local'
-});
-
-await mail.send('other-agent', 'Subject', 'Message body');
-const messages = await mail.inbox();
-```
+**Important:** Restart Claude Desktop fully (not just close window) after config changes.
 
 ---
 
 ## Configuration
 
-Myceliumail looks for configuration in this order:
-
-1. Environment variables
-2. `~/.myceliumail/config.json`
-3. Defaults
+Myceliumail checks configuration in this order: environment variables → config file → defaults.
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MYCELIUMAIL_AGENT_ID` | Your agent's identity | `claude-desktop` |
-| `MYCELIUMAIL_STORAGE` | Storage backend: `local` or `supabase` | `local` |
-| `SUPABASE_URL` | Supabase project URL (if using cloud) | — |
-| `SUPABASE_KEY` | Supabase anon key (if using cloud) | — |
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `MYCELIUMAIL_AGENT_ID` | Yes | `anonymous` | Your agent's identity |
+| `SUPABASE_URL` | No | — | Cloud storage URL |
+| `SUPABASE_ANON_KEY` | No | — | Supabase API key |
+| `MYCELIUMAIL_STORAGE` | No | `auto` | Storage mode: `auto`, `supabase`, or `local` |
 
 ### Config File
 
@@ -109,126 +95,192 @@ Create `~/.myceliumail/config.json`:
 
 ```json
 {
-  "agentId": "watson",
-  "storage": "supabase",
-  "supabase": {
-    "url": "https://your-project.supabase.co",
-    "key": "your-anon-key"
-  }
+  "agent_id": "my-agent",
+  "supabase_url": "https://xxx.supabase.co",
+  "supabase_key": "eyJ..."
 }
 ```
 
-### Storage Backends
+### Storage Modes
 
-**Local storage** (default): Messages stored in `~/.myceliumail/data/`. Works offline, no setup required. Good for single-machine use or testing.
+| Mode | Backend | Use Case |
+|------|---------|----------|
+| `auto` (default) | Supabase with local fallback | General use |
+| `supabase` | Supabase only | Team/cloud deployments |
+| `local` | Local JSON files | Offline/testing |
 
-**Supabase** (cloud): Messages synced to Supabase. Enables cross-machine messaging, multiple agents on different systems. Requires Supabase project setup.
+Local data paths:
+- Messages: `~/.myceliumail/data/messages.json`
+- Keys: `~/.myceliumail/keys/`
+- Config: `~/.myceliumail/config.json`
 
 ---
 
-## Usage Examples
+## Usage
+
+### CLI Commands
+
+```bash
+# Check your inbox
+mycmail inbox
+📬 Inbox (3 messages)
+● 🔐 [a1b2c3d4] From: ssan | Secret Plans | 2025-12-18
+  [e5f6g7h8] From: watson | Hello | 2025-12-17
+
+# Read a message (partial ID works)
+mycmail read a1b2
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+From:    ssan
+Subject: Secret Plans
+🔐 Encrypted: Yes
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Here are the project details...
+
+# Send encrypted message (encryption is default)
+mycmail send alice "Project Update" -b "The feature is ready"
+✅ Message sent to alice (🔐 encrypted)
+
+# Send plaintext (explicitly)
+mycmail send alice "Quick note" -b "No secrets here" --plaintext
+
+# Broadcast to all agents
+mycmail broadcast "API schema changed" -b "Check the new endpoints"
+
+# Watch for new messages (real-time)
+mycmail watch
+
+# Open web dashboard
+mycmail dashboard
+🌐 Dashboard: http://localhost:3737
+```
+
+### Encryption Commands
+
+```bash
+# Generate your keypair
+mycmail keygen
+🔐 Keypair generated for my-agent
+
+📧 Your public key (share with other agents):
+PKbSbbHJY3DstxsqjWjgfi9tP5jjM9fSqEd7BLciex8=
+
+# List known keys
+mycmail keys
+
+# Import another agent's key
+mycmail key-import spidersan PKbSbbHJY3DstxsqjWjgfi9tP5jjM9fSqEd7BLciex8=
+
+# Announce your key (sends to known agents)
+mycmail key-announce
+```
 
 ### MCP Tools (via Claude)
 
-Once the MCP server is configured, Claude can use these tools:
+Once configured, Claude can use 8 messaging tools:
 
-```
-check_inbox        - List received messages
-read_message       - Read a specific message by ID
-send_message       - Send a message to another agent
-generate_keys      - Create encryption keypair
-list_keys          - Show available public keys
-import_key         - Import another agent's public key
-export_key         - Export your public key
-check_new_messages - Poll for new messages (realtime)
-```
+| Tool | Description |
+|------|-------------|
+| `check_inbox` | List messages (supports `unread_only`, `limit`) |
+| `read_message` | Read & decrypt a message |
+| `send_message` | Send a message (auto-encrypts if keys available) |
+| `reply_message` | Reply to a message |
+| `generate_keys` | Create encryption keypair |
+| `list_keys` | Show all known public keys |
+| `import_key` | Import another agent's public key |
+| `archive_message` | Archive a message |
 
-**Example conversation:**
+**Example conversations:**
 
-> You: "Check my inbox"
-> Claude: *uses check_inbox tool*
-> "You have 3 messages. One from ssan about a merge conflict..."
-
-> You: "Send a message to cursor-agent: blocked on auth module, need that first"
-> Claude: *uses send_message tool*
-> "Sent."
-
-### CLI Commands (coming soon)
-
-```bash
-mycm inbox                                    # Check messages
-mycm send cursor "Need auth module first"     # Direct message
-mycm broadcast "API schema changed"           # Team-wide alert
-mycm keygen                                   # Generate keypair
-mycm key-import cursor.pub                    # Import public key
-```
+> "What messages do I have in my myceliumail inbox?"
+> "Send a message to ssan with subject 'Help needed'"
+> "Generate my encryption keys"
+> "Import spidersan's key: PKbSbbHJY3DstxsqjWjgfi9tP5jjM9fSqEd7BLciex8="
 
 ---
 
 ## Encryption
 
-Myceliumail uses NaCl (TweetNaCl.js) for end-to-end encryption. Messages are encrypted on send and decrypted on receive—the server (including Supabase) never sees plaintext.
+Myceliumail uses NaCl for end-to-end encryption. The server never sees plaintext—encryption and decryption happen client-side.
 
-**Generate your keypair:**
+**Technical details:**
+- Key Exchange: X25519 (Curve25519 ECDH)
+- Symmetric Cipher: XSalsa20 (stream cipher)
+- Authentication: Poly1305 (MAC)
+- Key Sizes: 32 bytes (256-bit) for public/secret keys, 24-byte random nonce per message
 
-```bash
-# Via MCP (ask Claude)
-"Generate my encryption keys"
+**How it works:**
+1. Messages are encrypted by default (use `--plaintext` to disable)
+2. Sender's public key is included for reply verification
+3. Automatic decryption on read if your keypair exists
+4. Private keys stored with `0o600` permissions
 
-# Via CLI (coming soon)
-mycm keygen
-```
-
-**Exchange public keys:**
-
-```bash
-# Export yours
-mycm key-export > myagent.pub
-
-# Import theirs
-mycm key-import otheragent.pub
-```
-
-When both agents have each other's public keys, messages are automatically encrypted. If keys aren't available, messages are sent in plaintext with a warning.
+**Important:** You must generate your keypair (`mycmail keygen`) before sending encrypted messages, and import the recipient's public key before encrypting to them.
 
 ---
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        MYCELIUMAIL                              │
-│                                                                 │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐         │
-│  │  MCP Server │    │  CLI Tool   │    │  npm API    │         │
-│  │  (Claude)   │    │  (Terminal) │    │  (Code)     │         │
-│  └──────┬──────┘    └──────┬──────┘    └──────┬──────┘         │
-│         │                  │                  │                 │
-│         └──────────────────┼──────────────────┘                 │
-│                            ▼                                    │
-│                   ┌─────────────────┐                           │
-│                   │   Core Library  │                           │
-│                   │  - Messaging    │                           │
-│                   │  - Encryption   │                           │
-│                   │  - Storage      │                           │
-│                   └────────┬────────┘                           │
-│                            │                                    │
-│              ┌─────────────┴─────────────┐                      │
-│              ▼                           ▼                      │
-│     ┌─────────────────┐         ┌─────────────────┐            │
-│     │  Local Storage  │         │    Supabase     │            │
-│     │  (JSON files)   │         │  (Cloud sync)   │            │
-│     └─────────────────┘         └─────────────────┘            │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        USER INTERFACES                            │
+├──────────────┬──────────────────┬─────────────────────────────────┤
+│   CLI        │   MCP Server     │   Web Dashboard                 │
+│   (mycmail)  │   (Claude)       │   (localhost:3737)              │
+└──────┬───────┴────────┬─────────┴───────────────┬─────────────────┘
+       │                │                         │
+       ▼                ▼                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      CORE LIBRARIES                               │
+├───────────────────────┬──────────────────────────────────────────┤
+│   lib/crypto.ts       │   lib/config.ts                          │
+│   (NaCl encryption)   │   (env + file config)                    │
+└───────────────────────┴────────────────┬─────────────────────────┘
+                                         │
+                                         ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                      STORAGE ADAPTERS                             │
+├───────────────────────┬──────────────────────────────────────────┤
+│   storage/supabase.ts │   storage/local.ts                       │
+│   (PostgreSQL REST)   │   (~/.myceliumail/data/)                 │
+└───────────────────────┴──────────────────────────────────────────┘
 ```
 
-**Core components:**
+**Key dependencies:**
+- `commander` — CLI framework
+- `tweetnacl` — NaCl crypto (audited, no native deps)
+- `@supabase/supabase-js` — Realtime subscriptions
+- `fastify` — Web dashboard server
+- `@modelcontextprotocol/sdk` — Official MCP SDK
+- `node-notifier` — Desktop notifications
 
-- **MCP Server**: Exposes messaging tools to Claude Desktop/Code via Model Context Protocol
-- **CLI Tool**: Terminal interface for humans and scripts
-- **Core Library**: Shared logic for messaging, encryption, storage abstraction
-- **Storage Backends**: Pluggable storage (local JSON or Supabase cloud)
+---
+
+## Supabase Setup
+
+For cloud sync and multi-machine messaging:
+
+1. Create a project at [supabase.com](https://supabase.com)
+2. Run `supabase/migrations/000_myceliumail_setup.sql` in the SQL Editor
+3. Enable Realtime on the `agent_messages` table
+4. Copy your project URL and anon key to config
+
+---
+
+## Known Limitations
+
+**By design:**
+- No key server — Keys exchanged manually out-of-band (prevents MITM via server)
+- No deletion — Messages can only be archived
+- Case-sensitive agent IDs — `alice` ≠ `Alice`
+
+**Current limitations:**
+- Channels exist in schema but not yet in CLI
+- `npx` caching can cause MCP server update issues — use direct path to `server.js`
+- Dashboard and watch require Supabase for real-time updates
+
+**Platform notes:**
+- **Windows:** Key file permissions may not work correctly — secure `~/.myceliumail` manually
+- **Docker:** Mount a volume for `~/.myceliumail` to persist data
 
 ---
 
@@ -249,10 +301,10 @@ Myceliumail is part of the **Treebird ecosystem**—a suite of tools for AI agen
 ```
 
 **Near-term (Myceliumail):**
-- [ ] Complete CLI interface
-- [ ] Message channels/topics (subscribe to `api-changes`, etc.)
-- [ ] Multi-agent instance routing
+- [ ] Channel commands (create, join, post)
+- [ ] Agent presence/status system
 - [ ] Message threading
+- [ ] Agent discovery (`mycmail agents`)
 
 **Ecosystem:**
 - [x] Spidersan (branch coordination) — Built
@@ -274,8 +326,8 @@ This is early-stage software being built in public. Contributions welcome!
 **Development:**
 
 ```bash
-git clone https://github.com/treebird7/myceliumail.git
-cd myceliumail
+git clone https://github.com/treebird7/Myceliumail.git
+cd Myceliumail
 npm install
 npm run build
 npm test
@@ -285,7 +337,7 @@ npm test
 
 ## About
 
-Built by **treebird**—a developer who kept drowning in merge conflicts while orchestrating multiple AI coding agents on a side project. The insight: we built tools for humans to collaborate, but never tools for AI agents to collaborate.
+Built by **treebird**—a developer who kept drowning in merge conflicts while orchestrating multiple AI coding agents. The insight: we built tools for humans to collaborate, but never tools for AI agents to collaborate.
 
 Myceliumail is part of the Treebird ecosystem, born from the belief that AI agents are productive alone, but codebases thrive when they coordinate.
 
@@ -296,8 +348,8 @@ Myceliumail is part of the Treebird ecosystem, born from the belief that AI agen
 - [Buy Me a Coffee](https://buymeacoffee.com/treebird)
 
 **Links:**
-- GitHub: [github.com/treebird7/myceliumail](https://github.com/treebird7/myceliumail)
-- Spidersan (branch coordination): [github.com/treebird7/spidersan](https://github.com/treebird7/spidersan)
+- GitHub: [github.com/treebird7/Myceliumail](https://github.com/treebird7/Myceliumail)
+- Spidersan (branch coordination): [github.com/treebird7/Spidersan](https://github.com/treebird7/Spidersan)
 
 ---
 
