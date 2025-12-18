@@ -33,6 +33,7 @@
     "bugs": {
         "url": "https://github.com/treebird7/myceliumail/issues"
     },
+    "readme": "README.md",
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.0",
         "tweetnacl": "^1.0.3",
