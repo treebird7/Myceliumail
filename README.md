@@ -345,7 +345,7 @@ Myceliumail is part of the Treebird ecosystem, born from the belief that AI agen
 
 **Support the project:**
 - [GitHub Sponsors](https://github.com/sponsors/treebird7)
-- [Buy Me a Coffee](https://buymeacoffee.com/treebird)
+- [Buy Me a Coffee](https://buymeacoffee.com/tree.bird)
 
 **Links:**
 - GitHub: [github.com/treebird7/Myceliumail](https://github.com/treebird7/Myceliumail)
