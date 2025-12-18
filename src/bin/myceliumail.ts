@@ -16,6 +16,7 @@ import { loadConfig } from '../lib/config.js';
 import { createKeygenCommand } from '../commands/keygen.js';
 import { createKeysCommand } from '../commands/keys.js';
 import { createKeyImportCommand } from '../commands/key-import.js';
+import { createKeyAnnounceCommand } from '../commands/key-announce.js';
 import { createSendCommand } from '../commands/send.js';
 import { createInboxCommand } from '../commands/inbox.js';
 import { createReadCommand } from '../commands/read.js';
@@ -41,6 +42,7 @@ Config: ~/.myceliumail/config.json
 program.addCommand(createKeygenCommand());
 program.addCommand(createKeysCommand());
 program.addCommand(createKeyImportCommand());
+program.addCommand(createKeyAnnounceCommand());
 program.addCommand(createSendCommand());
 program.addCommand(createInboxCommand());
 program.addCommand(createReadCommand());
