@@ -29,7 +29,7 @@ function loadFileConfig(): FileConfig {
             cachedFileConfig = JSON.parse(raw);
             return cachedFileConfig!;
         } catch {
-            // Invalid config file
+            // Invalid config file - ignore
         }
     }
     return {};

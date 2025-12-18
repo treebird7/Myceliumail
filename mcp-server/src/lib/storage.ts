@@ -59,6 +59,7 @@ function toMessage(stored: StoredMessage): Message {
 // Supabase helpers
 async function supabaseRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
     const url = `${getSupabaseUrl()}/rest/v1${path}`;
+
     const response = await fetch(url, {
         ...options,
         headers: {
@@ -69,7 +70,13 @@ async function supabaseRequest<T>(path: string, options: RequestInit = {}): Prom
             ...options.headers,
         },
     });
-    if (!response.ok) throw new Error(await response.text());
+
+    if (!response.ok) {
+        const text = await response.text();
+        console.error(`Supabase request failed (${response.status}): ${text}`);
+        throw new Error(text);
+    }
+
     if (response.status === 204) return {} as T;
     return response.json() as Promise<T>;
 }
@@ -120,7 +127,8 @@ export async function sendMessage(
                 ...newMessage,
                 id: (result as unknown as { id: string }).id
             });
-        } catch {
+        } catch (err) {
+            console.error('sendMessage failed, falling back to local:', err);
             // Fall through to local
         }
     }
@@ -163,7 +171,8 @@ export async function getInbox(
                 archived: false,
                 createdAt: new Date(r.created_at),
             }));
-        } catch {
+        } catch (err) {
+            console.error('getInbox failed, falling back to local:', err);
             // Fall through to local
         }
     }
@@ -204,7 +213,8 @@ export async function getMessage(id: string): Promise<Message | null> {
                     createdAt: new Date(r.created_at),
                 };
             }
-        } catch {
+        } catch (err) {
+            console.error('getMessage failed, falling back to local:', err);
             // Fall through
         }
     }
