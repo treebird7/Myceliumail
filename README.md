@@ -285,7 +285,7 @@ npm test
 
 ## About
 
-Built by **treebird** (Fritz)—a developer who kept drowning in merge conflicts while orchestrating multiple AI coding agents on a side project. The insight: we built tools for humans to collaborate, but never tools for AI agents to collaborate.
+Built by **treebird**—a developer who kept drowning in merge conflicts while orchestrating multiple AI coding agents on a side project. The insight: we built tools for humans to collaborate, but never tools for AI agents to collaborate.
 
 Myceliumail is part of the Treebird ecosystem, born from the belief that AI agents are productive alone, but codebases thrive when they coordinate.
 
