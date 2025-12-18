@@ -289,6 +289,8 @@ Built by **treebird**—a developer who kept drowning in merge conflicts while o
 
 Myceliumail is part of the Treebird ecosystem, born from the belief that AI agents are productive alone, but codebases thrive when they coordinate.
 
+**Contact:** treebird@treebird.dev
+
 **Support the project:**
 - [GitHub Sponsors](https://github.com/sponsors/treebird7)
 - [Buy Me a Coffee](https://buymeacoffee.com/treebird)
