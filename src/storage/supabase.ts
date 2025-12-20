@@ -221,7 +221,7 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
 }
 
 /**
- * Get a specific message
+ * Get a specific message (supports partial ID lookup)
  */
 export async function getMessage(id: string): Promise<Message | null> {
     const client = createClient();
@@ -230,6 +230,52 @@ export async function getMessage(id: string): Promise<Message | null> {
         return local.getMessage(id);
     }
 
+    // For partial IDs, fetch recent messages and filter client-side
+    // (PostgreSQL UUID type doesn't support LIKE operator)
+    if (id.length < 36) {
+        const results = await supabaseRequest<Array<{
+            id: string;
+            from_agent: string;
+            to_agent: string;
+            subject: string;
+            message: string;
+            encrypted: boolean;
+            read: boolean;
+            created_at: string;
+        }>>(client, `/agent_messages?order=created_at.desc&limit=100`);
+
+        const r = results.find(row => row.id.startsWith(id));
+        if (!r) return null;
+
+        // Parse encrypted message
+        let ciphertext, nonce, senderPublicKey, body = r.message;
+        if (r.encrypted && r.message) {
+            try {
+                const enc = JSON.parse(r.message);
+                ciphertext = enc.ciphertext;
+                nonce = enc.nonce;
+                senderPublicKey = enc.sender_public_key;
+                body = '';
+            } catch { }
+        }
+
+        return {
+            id: r.id,
+            sender: r.from_agent,
+            recipient: r.to_agent,
+            subject: r.subject || '',
+            body,
+            encrypted: r.encrypted,
+            ciphertext,
+            nonce,
+            senderPublicKey,
+            read: r.read,
+            archived: false,
+            createdAt: new Date(r.created_at),
+        };
+    }
+
+    // Full UUID - exact match
     const results = await supabaseRequest<Array<{
         id: string;
         from_agent: string;
@@ -274,7 +320,7 @@ export async function getMessage(id: string): Promise<Message | null> {
 }
 
 /**
- * Mark message as read
+ * Mark message as read (supports partial ID)
  */
 export async function markAsRead(id: string, agentId?: string): Promise<boolean> {
     const client = createClient();
@@ -283,8 +329,16 @@ export async function markAsRead(id: string, agentId?: string): Promise<boolean>
         return local.markAsRead(id, agentId);
     }
 
+    // For partial IDs, resolve full UUID first
+    let fullId = id;
+    if (id.length < 36) {
+        const msg = await getMessage(id);
+        if (!msg) return false;
+        fullId = msg.id;
+    }
+
     try {
-        await supabaseRequest(client, `/agent_messages?id=eq.${id}`, {
+        await supabaseRequest(client, `/agent_messages?id=eq.${fullId}`, {
             method: 'PATCH',
             body: JSON.stringify({ read: true }),
         });
@@ -295,7 +349,7 @@ export async function markAsRead(id: string, agentId?: string): Promise<boolean>
 }
 
 /**
- * Archive a message
+ * Archive a message (supports partial ID)
  */
 export async function archiveMessage(id: string): Promise<boolean> {
     const client = createClient();
@@ -304,8 +358,16 @@ export async function archiveMessage(id: string): Promise<boolean> {
         return local.archiveMessage(id);
     }
 
+    // For partial IDs, resolve full UUID first
+    let fullId = id;
+    if (id.length < 36) {
+        const msg = await getMessage(id);
+        if (!msg) return false;
+        fullId = msg.id;
+    }
+
     try {
-        await supabaseRequest(client, `/agent_messages?id=eq.${id}`, {
+        await supabaseRequest(client, `/agent_messages?id=eq.${fullId}`, {
             method: 'PATCH',
             body: JSON.stringify({ archived: true }),
         });
