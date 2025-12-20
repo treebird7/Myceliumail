@@ -189,29 +189,59 @@ export async function getInbox(
 export async function getMessage(id: string): Promise<Message | null> {
     if (hasSupabase()) {
         try {
-            const results = await supabaseRequest<Array<{
-                id: string; from_agent: string; to_agent: string;
-                subject: string; message: string; encrypted: boolean;
-                ciphertext: string; nonce: string; sender_public_key: string;
-                read: boolean; created_at: string;
-            }>>(`/agent_messages?id=eq.${id}`);
+            // For partial IDs, fetch recent and filter client-side
+            // (PostgreSQL UUID doesn't support LIKE operator)
+            if (id.length < 36) {
+                const results = await supabaseRequest<Array<{
+                    id: string; from_agent: string; to_agent: string;
+                    subject: string; message: string; encrypted: boolean;
+                    ciphertext: string; nonce: string; sender_public_key: string;
+                    read: boolean; created_at: string;
+                }>>(`/agent_messages?order=created_at.desc&limit=100`);
 
-            if (results.length > 0) {
-                const r = results[0];
-                return {
-                    id: r.id,
-                    sender: r.from_agent,
-                    recipient: r.to_agent,
-                    subject: r.subject || '',
-                    body: r.message || '',
-                    encrypted: r.encrypted,
-                    ciphertext: r.ciphertext,
-                    nonce: r.nonce,
-                    senderPublicKey: r.sender_public_key,
-                    read: r.read,
-                    archived: false,
-                    createdAt: new Date(r.created_at),
-                };
+                const r = results.find(row => row.id.startsWith(id));
+                if (r) {
+                    return {
+                        id: r.id,
+                        sender: r.from_agent,
+                        recipient: r.to_agent,
+                        subject: r.subject || '',
+                        body: r.message || '',
+                        encrypted: r.encrypted,
+                        ciphertext: r.ciphertext,
+                        nonce: r.nonce,
+                        senderPublicKey: r.sender_public_key,
+                        read: r.read,
+                        archived: false,
+                        createdAt: new Date(r.created_at),
+                    };
+                }
+            } else {
+                // Full UUID - exact match
+                const results = await supabaseRequest<Array<{
+                    id: string; from_agent: string; to_agent: string;
+                    subject: string; message: string; encrypted: boolean;
+                    ciphertext: string; nonce: string; sender_public_key: string;
+                    read: boolean; created_at: string;
+                }>>(`/agent_messages?id=eq.${id}`);
+
+                if (results.length > 0) {
+                    const r = results[0];
+                    return {
+                        id: r.id,
+                        sender: r.from_agent,
+                        recipient: r.to_agent,
+                        subject: r.subject || '',
+                        body: r.message || '',
+                        encrypted: r.encrypted,
+                        ciphertext: r.ciphertext,
+                        nonce: r.nonce,
+                        senderPublicKey: r.sender_public_key,
+                        read: r.read,
+                        archived: false,
+                        createdAt: new Date(r.created_at),
+                    };
+                }
             }
         } catch (err) {
             console.error('getMessage failed, falling back to local:', err);
@@ -219,15 +249,24 @@ export async function getMessage(id: string): Promise<Message | null> {
         }
     }
 
+    // Local storage - also supports partial ID
     const messages = loadLocalMessages();
-    const found = messages.find(m => m.id === id);
+    const found = messages.find(m => m.id === id || m.id.startsWith(id));
     return found ? toMessage(found) : null;
 }
 
 export async function markAsRead(id: string): Promise<boolean> {
+    // For partial IDs, resolve full UUID first
+    let fullId = id;
+    if (id.length < 36) {
+        const msg = await getMessage(id);
+        if (!msg) return false;
+        fullId = msg.id;
+    }
+
     if (hasSupabase()) {
         try {
-            await supabaseRequest(`/agent_messages?id=eq.${id}`, {
+            await supabaseRequest(`/agent_messages?id=eq.${fullId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ read: true }),
             });
@@ -238,7 +277,7 @@ export async function markAsRead(id: string): Promise<boolean> {
     }
 
     const messages = loadLocalMessages();
-    const idx = messages.findIndex(m => m.id === id);
+    const idx = messages.findIndex(m => m.id === fullId);
     if (idx === -1) return false;
     messages[idx].read = true;
     saveLocalMessages(messages);
@@ -246,9 +285,17 @@ export async function markAsRead(id: string): Promise<boolean> {
 }
 
 export async function archiveMessage(id: string): Promise<boolean> {
+    // For partial IDs, resolve full UUID first
+    let fullId = id;
+    if (id.length < 36) {
+        const msg = await getMessage(id);
+        if (!msg) return false;
+        fullId = msg.id;
+    }
+
     if (hasSupabase()) {
         try {
-            await supabaseRequest(`/agent_messages?id=eq.${id}`, {
+            await supabaseRequest(`/agent_messages?id=eq.${fullId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ archived: true }),
             });
@@ -259,7 +306,7 @@ export async function archiveMessage(id: string): Promise<boolean> {
     }
 
     const messages = loadLocalMessages();
-    const idx = messages.findIndex(m => m.id === id);
+    const idx = messages.findIndex(m => m.id === fullId);
     if (idx === -1) return false;
     messages[idx].archived = true;
     saveLocalMessages(messages);
