@@ -25,8 +25,17 @@
     "e2e",
     "cli"
   ],
-  "author": "Treebird",
+  "author": "Treebird <treebird@treebird.dev>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/treebird7/myceliumail"
+  },
+  "homepage": "https://github.com/treebird7/myceliumail#readme",
+  "bugs": {
+    "url": "https://github.com/treebird7/myceliumail/issues"
+  },
+  "readme": "README.md",
   "dependencies": {
     "@fastify/cors": "^11.2.0",
     "@fastify/static": "^8.3.0",
