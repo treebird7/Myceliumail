@@ -23,16 +23,17 @@
         "e2e",
         "myceliumail"
     ],
-    "author": "Treebird",
+    "author": "Treebird <treebird@treebird.dev>",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "https://github.com/treebird/myceliumail"
+        "url": "https://github.com/treebird7/myceliumail"
     },
-    "homepage": "https://github.com/treebird/myceliumail#readme",
+    "homepage": "https://github.com/treebird7/myceliumail#readme",
     "bugs": {
-        "url": "https://github.com/treebird/myceliumail/issues"
+        "url": "https://github.com/treebird7/myceliumail/issues"
     },
+    "readme": "README.md",
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.0",
         "tweetnacl": "^1.0.3",
