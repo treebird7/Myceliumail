@@ -24,6 +24,7 @@ import { createDashboardCommand } from '../commands/dashboard.js';
 import { createBroadcastCommand } from '../commands/broadcast.js';
 import { createWatchCommand } from '../commands/watch.js';
 import { createExportCommand } from '../commands/export.js';
+import { createStatusCommand } from '../commands/status.js';
 
 const program = new Command();
 
@@ -51,6 +52,7 @@ program.addCommand(createDashboardCommand());
 program.addCommand(createBroadcastCommand());
 program.addCommand(createWatchCommand());
 program.addCommand(createExportCommand());
+program.addCommand(createStatusCommand());
 
 // Parse and run
 program.parse();

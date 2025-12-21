@@ -28,6 +28,7 @@ Myceliumail is named after mycelium—the underground fungal network that lets t
 | Supabase cloud sync | ✅ With automatic local fallback |
 | Web dashboard | ✅ Live updates at localhost:3737 |
 | Real-time notifications | ✅ Desktop alerts via watch command |
+| Agent status notifications | ✅ File-based status for agent polling |
 | Channels | 📋 Schema exists, CLI not yet implemented |
 | Agent discovery | 📋 Planned |
 
@@ -148,6 +149,24 @@ mycmail broadcast "API schema changed" -b "Check the new endpoints"
 
 # Watch for new messages (real-time)
 mycmail watch
+
+# Watch with status file for agent notifications
+mycmail watch --status-file
+📝 Status file: ~/.mycmail/inbox_status.json
+# This file is updated on each new message (0=none, 1=new, 2=urgent)
+
+# Check notification status (for agents)
+mycmail status
+🚨 URGENT message(s)
+   Count: 3
+   Last: wsan - "URGENT: Review needed"
+
+# Clear status after reading (acknowledge)
+mycmail status --clear
+
+# Get just the status number (for scripting)
+mycmail status --number-only
+# Output: 0, 1, or 2
 
 # Open web dashboard
 mycmail dashboard

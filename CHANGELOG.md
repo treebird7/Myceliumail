@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] - 2025-12-22
+
+### Added
+- **Agent status notifications** - File-based mail notification system for AI agents
+  - `mycmail watch --status-file` - Writes to `~/.mycmail/inbox_status.json` on new messages
+  - `mycmail status` - Check notification status (0=none, 1=new, 2=urgent)
+  - `mycmail status --clear` - Clear status after reading
+  - `mycmail status --number-only` - Simple output for scripting
+  - Urgent detection: messages with "urgent" in subject get status 2
+- Updated README with status notification documentation
+
+## [1.0.5]
+
 ### Added
 - Comprehensive architecture documentation for public release
 - Contact email to README and package metadata
