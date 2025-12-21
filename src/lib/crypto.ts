@@ -157,7 +157,7 @@ export function loadKnownKeys(): Record<string, string> {
 export function saveKnownKey(agentId: string, publicKeyBase64: string): void {
     ensureKeysDir();
     const keys = loadKnownKeys();
-    keys[agentId] = publicKeyBase64;
+    keys[agentId.toLowerCase()] = publicKeyBase64;
     writeFileSync(join(KEYS_DIR, 'known_keys.json'), JSON.stringify(keys, null, 2));
 }
 
@@ -166,7 +166,7 @@ export function saveKnownKey(agentId: string, publicKeyBase64: string): void {
  */
 export function getKnownKey(agentId: string): string | null {
     const keys = loadKnownKeys();
-    return keys[agentId] || null;
+    return keys[agentId.toLowerCase()] || null;
 }
 
 /**
@@ -181,8 +181,9 @@ export function getKnownKeys(): Record<string, string> {
  */
 export function deleteKnownKey(agentId: string): boolean {
     const keys = loadKnownKeys();
-    if (!(agentId in keys)) return false;
-    delete keys[agentId];
+    const normalizedId = agentId.toLowerCase();
+    if (!(normalizedId in keys)) return false;
+    delete keys[normalizedId];
     writeFileSync(join(KEYS_DIR, 'known_keys.json'), JSON.stringify(keys, null, 2));
     return true;
 }

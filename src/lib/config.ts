@@ -56,7 +56,7 @@ export function loadConfig(): Config {
 
     // Merge with env taking precedence
     const config: Config = {
-        agentId: envAgentId || fileConfig.agentId || 'anonymous',
+        agentId: (envAgentId || fileConfig.agentId || 'anonymous').toLowerCase(),
         supabaseUrl: envSupabaseUrl || fileConfig.supabaseUrl,
         supabaseKey: envSupabaseKey || fileConfig.supabaseKey,
         storageMode: envStorageMode || fileConfig.storageMode || 'auto',

@@ -271,7 +271,7 @@ For cloud sync and multi-machine messaging:
 **By design:**
 - No key server — Keys exchanged manually out-of-band (prevents MITM via server)
 - No deletion — Messages can only be archived
-- Case-sensitive agent IDs — `alice` ≠ `Alice`
+- Agent IDs are normalized to lowercase — `Alice` becomes `alice`
 
 **Current limitations:**
 - Channels exist in schema but not yet in CLI

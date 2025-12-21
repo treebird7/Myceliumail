@@ -2,6 +2,7 @@
  * send command - Send a message to another agent
  * 
  * Messages are encrypted by default. Use --plaintext to send unencrypted.
+ * Message body can be provided via -m flag, stdin pipe, or defaults to subject.
  */
 
 import { Command } from 'commander';
@@ -14,16 +15,36 @@ import {
 } from '../lib/crypto.js';
 import * as storage from '../storage/supabase.js';
 
+/**
+ * Read from stdin if data is being piped
+ */
+async function readStdin(): Promise<string | null> {
+    // Check if stdin is a TTY (interactive terminal) - if so, no piped data
+    if (process.stdin.isTTY) {
+        return null;
+    }
+
+    return new Promise((resolve) => {
+        let data = '';
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', (chunk) => { data += chunk; });
+        process.stdin.on('end', () => { resolve(data.trim() || null); });
+        // Timeout after 100ms if no data
+        setTimeout(() => resolve(null), 100);
+    });
+}
+
 export function createSendCommand(): Command {
     return new Command('send')
         .description('Send a message to another agent (encrypted by default)')
         .argument('<recipient>', 'Recipient agent ID')
         .argument('<subject>', 'Message subject')
-        .option('-m, --message <body>', 'Message body (or provide via stdin)')
+        .option('-m, --message <body>', 'Message body (or pipe via stdin)')
         .option('-p, --plaintext', 'Send unencrypted (not recommended)')
         .action(async (recipient: string, subject: string, options) => {
             const config = loadConfig();
             const sender = config.agentId;
+            const normalizedRecipient = recipient.toLowerCase();
 
             if (sender === 'anonymous') {
                 console.error('❌ Agent ID not configured.');
@@ -31,14 +52,20 @@ export function createSendCommand(): Command {
                 process.exit(1);
             }
 
-            const body = options.message || subject;
+            // Try to get body from: 1) -m option, 2) stdin pipe, 3) subject
+            let body = options.message;
+            if (!body) {
+                const stdinData = await readStdin();
+                body = stdinData || subject;
+            }
+
             let messageOptions;
             let encrypted = false;
 
             // Encrypt by default unless --plaintext is specified
             if (!options.plaintext) {
                 const senderKeyPair = loadKeyPair(sender);
-                const recipientPubKeyB64 = getKnownKey(recipient);
+                const recipientPubKeyB64 = getKnownKey(normalizedRecipient);
 
                 if (senderKeyPair && recipientPubKeyB64) {
                     try {
@@ -62,7 +89,7 @@ export function createSendCommand(): Command {
                         console.warn('⚠️  No keypair found. Run: mycmail keygen');
                     }
                     if (!recipientPubKeyB64) {
-                        console.warn(`⚠️  No public key for ${recipient}. Run: mycmail key-import ${recipient} <key>`);
+                        console.warn(`⚠️  No public key for ${normalizedRecipient}. Run: mycmail key-import ${normalizedRecipient} <key>`);
                     }
                     console.warn('   Sending as plaintext (use -p to suppress this warning)\n');
                 }
@@ -71,13 +98,13 @@ export function createSendCommand(): Command {
             try {
                 const message = await storage.sendMessage(
                     sender,
-                    recipient,
+                    normalizedRecipient,
                     subject,
                     body,
                     messageOptions
                 );
 
-                console.log(`\n✅ Message sent to ${recipient}`);
+                console.log(`\n✅ Message sent to ${normalizedRecipient}`);
                 console.log(`   ID: ${message.id}`);
                 console.log(`   Subject: ${subject}`);
                 console.log(`   ${encrypted ? '🔐 Encrypted' : '📨 Plaintext'}`);
@@ -87,3 +114,4 @@ export function createSendCommand(): Command {
             }
         });
 }
+

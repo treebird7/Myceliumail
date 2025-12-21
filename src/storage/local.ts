@@ -107,10 +107,12 @@ export async function sendMessage(
 export async function getInbox(agentId: string, options?: InboxOptions): Promise<Message[]> {
     const messages = loadMessages();
 
+    const normalizedAgentId = agentId.toLowerCase();
     let filtered = agentId === 'all'
         ? messages.filter(m => !m.archived)
         : messages.filter(m =>
-            (m.recipient === agentId || m.recipients?.includes(agentId)) && !m.archived
+            (m.recipient.toLowerCase() === normalizedAgentId ||
+                m.recipients?.some(r => r.toLowerCase() === normalizedAgentId)) && !m.archived
         );
 
     if (options?.unreadOnly) {
@@ -194,8 +196,9 @@ export async function archiveMessage(id: string): Promise<boolean> {
  */
 export async function getSent(agentId: string, limit?: number): Promise<Message[]> {
     const messages = loadMessages();
+    const normalizedAgentId = agentId.toLowerCase();
 
-    let filtered = messages.filter(m => m.sender === agentId);
+    let filtered = messages.filter(m => m.sender.toLowerCase() === normalizedAgentId);
 
     filtered.sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
