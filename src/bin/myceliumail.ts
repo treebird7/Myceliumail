@@ -23,6 +23,7 @@ import { createReadCommand } from '../commands/read.js';
 import { createDashboardCommand } from '../commands/dashboard.js';
 import { createBroadcastCommand } from '../commands/broadcast.js';
 import { createWatchCommand } from '../commands/watch.js';
+import { createExportCommand } from '../commands/export.js';
 
 const program = new Command();
 
@@ -49,6 +50,7 @@ program.addCommand(createReadCommand());
 program.addCommand(createDashboardCommand());
 program.addCommand(createBroadcastCommand());
 program.addCommand(createWatchCommand());
+program.addCommand(createExportCommand());
 
 // Parse and run
 program.parse();
