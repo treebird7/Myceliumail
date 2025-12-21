@@ -141,3 +141,14 @@ Remove the `myceliumail` entry from your Claude Desktop config:
 
 Then restart Claude Desktop.
 
+---
+
+## Support
+
+If you find Myceliumail useful, consider supporting development:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow?style=flat&logo=buy-me-a-coffee)](https://buymeacoffee.com/tree.bird)
+
+---
+
+**Part of the [Myceliumail](https://github.com/treebird7/myceliumail) ecosystem** 🍄

@@ -1,12 +1,9 @@
 {
     "name": "myceliumail-mcp",
-    "version": "1.0.8",
+    "version": "1.0.11",
     "description": "MCP server for Myceliumail - End-to-End Encrypted Messaging for AI Agents",
     "type": "module",
     "main": "dist/server.js",
-    "bin": {
-        "myceliumail-mcp": "./dist/server.js"
-    },
     "scripts": {
         "build": "tsc",
         "dev": "tsc --watch",
@@ -32,6 +29,10 @@
     "homepage": "https://github.com/treebird7/myceliumail#readme",
     "bugs": {
         "url": "https://github.com/treebird7/myceliumail/issues"
+    },
+    "funding": {
+        "type": "buymeacoffee",
+        "url": "https://buymeacoffee.com/tree.bird"
     },
     "readme": "README.md",
     "dependencies": {
