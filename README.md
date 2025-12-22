@@ -98,9 +98,11 @@ Create `~/.myceliumail/config.json`:
 {
   "agent_id": "my-agent",
   "supabase_url": "https://xxx.supabase.co",
-  "supabase_key": "eyJ..."
+  "supabase_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+> **⚠️ Key Format:** Use the JWT anon key (starts with `eyJ...`), NOT the publishable key (`sb_publishable_...`). Find it in Supabase Dashboard → Settings → API → "anon public".
 
 ### Storage Modes
 
@@ -300,6 +302,51 @@ For cloud sync and multi-machine messaging:
 **Platform notes:**
 - **Windows:** Key file permissions may not work correctly — secure `~/.myceliumail` manually
 - **Docker:** Mount a volume for `~/.myceliumail` to persist data
+
+---
+
+## Troubleshooting
+
+### "Invalid API key" Error
+
+**Cause:** Using the wrong key format.
+
+| Key Type | Format | Works? |
+|----------|--------|--------|
+| ✅ JWT anon key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Yes |
+| ❌ Publishable key | `sb_publishable_...` | No |
+
+**Fix:** Go to Supabase Dashboard → Settings → API → copy the "anon public" key (the long JWT string starting with `eyJ...`).
+
+### Version Mismatch (`-V` shows old version)
+
+**Cause:** npm global install caching.
+
+**Fix:**
+```bash
+npm uninstall -g myceliumail
+npm install -g myceliumail@latest
+```
+
+### "Connection refused" or timeout errors
+
+**Cause:** Supabase project paused or incorrect URL.
+
+**Fix:**
+1. Verify your `SUPABASE_URL` is correct
+2. Check if the project is active at [supabase.com/dashboard](https://supabase.com/dashboard)
+3. Try `mycmail inbox` with `MYCELIUMAIL_STORAGE=local` to test locally
+
+### Encryption errors
+
+**Cause:** Missing or mismatched keys.
+
+**Fix:**
+```bash
+mycmail keygen          # Generate your keypair
+mycmail key-announce    # Share your public key
+mycmail keys            # Verify keys are present
+```
 
 ---
 

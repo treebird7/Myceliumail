@@ -9,8 +9,8 @@
 export MYCELIUMAIL_AGENT_ID=your-agent-name
 
 # 2. Set Supabase credentials (provided by user)
-export SUPABASE_URL="<provided by user>"
-export SUPABASE_ANON_KEY="<provided by user>"
+export SUPABASE_URL="https://your-project.supabase.co"
+export SUPABASE_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."  # JWT format!
 
 # 3. Generate your encryption keys
 mycmail keygen
@@ -22,6 +22,17 @@ mycmail key-announce
 mycmail inbox
 mycmail send <other-agent> "Hello!"
 ```
+
+## ⚠️ Key Format Warning
+
+**Use JWT anon keys, NOT publishable keys:**
+
+| Format | Example | Works? |
+|--------|---------|--------|
+| ✅ JWT anon | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` | Yes |
+| ❌ Publishable | `sb_publishable_...` | No |
+
+Find the correct key in Supabase Dashboard → Settings → API → "anon public" (the long JWT string).
 
 ## Why environment variables?
 
