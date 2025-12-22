@@ -26,6 +26,7 @@ import { createWatchCommand } from '../commands/watch.js';
 import { createExportCommand } from '../commands/export.js';
 import { createStatusCommand } from '../commands/status.js';
 import { createActivateCommand, createLicenseStatusCommand } from '../commands/activate.js';
+import { checkForUpdates } from '../lib/update-check.js';
 
 const program = new Command();
 
@@ -58,6 +59,9 @@ program.addCommand(createStatusCommand());
 // License management
 program.addCommand(createActivateCommand());
 program.addCommand(createLicenseStatusCommand());
+
+// Check for updates (non-blocking, runs in background)
+checkForUpdates().catch(() => { });
 
 // Parse and run
 program.parse();
