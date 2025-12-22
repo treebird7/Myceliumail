@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Urgent detection: messages with "urgent" in subject get status 2
 - Updated README with status notification documentation
 
-## [1.0.5]
+## [1.0.5] - 2025-12-20
 
 ### Added
 - Comprehensive architecture documentation for public release
@@ -26,6 +26,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Complete README rewrite for public release messaging
+
+## [1.0.4] - 2025-12-20
+
+### Fixed
+- Partial ID lookup bug in `mycmail read` command for Supabase storage
+- Applied same fix to `myceliumail-mcp` server
+
+## [1.0.3] - 2025-12-18
+
+### Fixed
+- Agent ID case normalization (all IDs now lowercase)
+- Key import and send commands now handle case correctly
+
+## [1.0.2] - 2025-12-18
+
+### Fixed
+- Desktop notification sound and click behavior
+- Dashboard real-time connection stability
+
+## [1.0.1] - 2025-12-18
+
+### Fixed
+- npm package bin paths corrected
+- Missing dependencies in published package
 
 ## [1.0.0] - 2025-12-18
 
