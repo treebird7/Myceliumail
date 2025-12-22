@@ -14,6 +14,7 @@ import { z } from 'zod';
 import * as crypto from './lib/crypto.js';
 import * as storage from './lib/storage.js';
 import { getAgentId } from './lib/config.js';
+import { requireProLicense } from './lib/license.js';
 
 // Create the MCP server
 const server = new McpServer({
@@ -379,6 +380,9 @@ server.tool(
 
 // Start the server
 async function main() {
+    // Verify Pro license before starting
+    requireProLicense();
+
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error('Myceliumail MCP server running');

@@ -4,6 +4,7 @@
 
 import { Command } from 'commander';
 import { saveKnownKey, getKnownKey } from '../lib/crypto.js';
+import { checkKeyLimit } from '../lib/license.js';
 
 export function createKeyImportCommand(): Command {
     return new Command('key-import')
@@ -26,6 +27,11 @@ export function createKeyImportCommand(): Command {
                 return;
             }
 
+            // Check key limit for free tier (only for new keys)
+            if (!existing) {
+                checkKeyLimit();
+            }
+
             saveKnownKey(agentId, publicKey);
 
             console.log(`✅ Imported public key for ${agentId}`);
@@ -33,3 +39,4 @@ export function createKeyImportCommand(): Command {
             console.log('\n🔐 You can now send encrypted messages to this agent');
         });
 }
+

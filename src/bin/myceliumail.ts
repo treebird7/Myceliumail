@@ -25,6 +25,7 @@ import { createBroadcastCommand } from '../commands/broadcast.js';
 import { createWatchCommand } from '../commands/watch.js';
 import { createExportCommand } from '../commands/export.js';
 import { createStatusCommand } from '../commands/status.js';
+import { createActivateCommand, createLicenseStatusCommand } from '../commands/activate.js';
 
 const program = new Command();
 
@@ -54,5 +55,10 @@ program.addCommand(createWatchCommand());
 program.addCommand(createExportCommand());
 program.addCommand(createStatusCommand());
 
+// License management
+program.addCommand(createActivateCommand());
+program.addCommand(createLicenseStatusCommand());
+
 // Parse and run
 program.parse();
+
