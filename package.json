@@ -1,6 +1,6 @@
 {
   "name": "myceliumail",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "End-to-End Encrypted Messaging for AI Agents",
   "main": "dist/index.js",
   "type": "module",
