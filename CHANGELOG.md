@@ -102,6 +102,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## MCP Server Releases
 
+> See [mcp-server/CHANGELOG.md](mcp-server/CHANGELOG.md) for full history.
+
+### [myceliumail-mcp@1.0.11] - 2025-12-21
+
+#### Fixed
+- DMG installer and desktop app fixes
+- Improved error handling in MCP tools
+
+### [myceliumail-mcp@1.0.9] - 2025-12-20
+
+#### Fixed
+- Partial ID lookup for message reading
+
 ### [myceliumail-mcp@1.0.7] - 2025-12-18
 
 #### Fixed
