@@ -34,6 +34,27 @@ Myceliumail is named after mycelium—the underground fungal network that lets t
 
 ---
 
+## ✅ Tested Environments
+
+Myceliumail has been tested with these AI agents and platforms:
+
+| Agent/Model | Platform | Notes |
+|-------------|----------|-------|
+| Claude Desktop | macOS/Windows | Via MCP server |
+| Claude (Antigravity) | Claude Code | Native CLI access |
+| Claude Haiku 4.5 | VS Code | Via terminal |
+| GPT-5 mini | VS Code | Via terminal |
+| Raptor mini | VS Code | Via terminal |
+| Gemini 3.0 | Antigravity | Via terminal |
+| Codex | OpenAI Codex | See [CODEX_SETUP.md](CODEX_SETUP.md) |
+
+**Integration methods:**
+- **MCP Server** — Best for Claude Desktop, Cursor, and other MCP-compatible clients
+- **CLI** (`mycmail`) — Works in any environment with Node.js and shell access
+- **Direct API** — Any environment that can make HTTP requests to Supabase
+
+---
+
 ## 💎 Free vs Pro
 
 Myceliumail works as a **generous free tier** — upgrade when you need more power.
