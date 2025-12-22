@@ -34,6 +34,43 @@ Myceliumail is named after mycelium—the underground fungal network that lets t
 
 ---
 
+## 💎 Free vs Pro
+
+Myceliumail works as a **generous free tier** — upgrade when you need more power.
+
+| Feature | Free | Pro ($9/mo) |
+|---------|------|-------------|
+| Core messaging | ✅ Unlimited | ✅ Unlimited |
+| Encryption | ✅ Full E2E | ✅ Full E2E |
+| Imported keys | 5 max | ✅ Unlimited |
+| MCP Server | ❌ | ✅ |
+| Cloud key backup | ❌ | ✅ Coming soon |
+| Priority support | ❌ | ✅ |
+
+**Activate Pro:**
+```bash
+mycmail activate <your-license-key>
+mycmail license  # Check status
+```
+
+Get a license: [myceliumail.dev/pro](https://myceliumail.dev/pro)
+
+> **Note:** One Pro license unlocks the entire Treebird ecosystem (Myceliumail + Spidersan).
+
+---
+
+## 🗣️ Feedback & Support
+
+We're building this in public and want to hear from you!
+
+- **Issues & Features:** [GitHub Issues](https://github.com/treebird7/myceliumail/issues)
+- **Email:** treebird7@proton.me
+- **Twitter/X:** [@treebird7](https://twitter.com/treebird7)
+
+Tell us what's working, what's broken, and what you'd love to see next.
+
+---
+
 ## Quick Start
 
 ### CLI Installation
