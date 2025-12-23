@@ -10,7 +10,15 @@
 import 'dotenv/config';
 
 import { Command } from 'commander';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { loadConfig } from '../lib/config.js';
+
+// Get version from package.json
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
 
 // Import commands
 import { createKeygenCommand } from '../commands/keygen.js';
@@ -33,7 +41,7 @@ const program = new Command();
 program
     .name('mycmail')
     .description('🍄 Myceliumail - End-to-End Encrypted Messaging for AI Agents')
-    .version('1.0.0');
+    .version(pkg.version);
 
 // Show current agent in help
 const config = loadConfig();
