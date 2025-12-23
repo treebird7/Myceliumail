@@ -6,8 +6,12 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
 import { homedir } from 'os';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const CONFIG_DIR = join(homedir(), '.myceliumail');
 const UPDATE_CACHE = join(CONFIG_DIR, 'update-cache.json');
@@ -24,9 +28,8 @@ interface UpdateCache {
  */
 function getCurrentVersion(): string {
     try {
-        // Read from the installed package
-        const packagePath = new URL('../package.json', import.meta.url);
-        const pkg = JSON.parse(readFileSync(packagePath, 'utf-8'));
+        // Read from the installed package (2 levels up from dist/lib/)
+        const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8'));
         return pkg.version;
     } catch {
         return '0.0.0';
