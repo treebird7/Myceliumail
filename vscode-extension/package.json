@@ -1,0 +1,117 @@
+{
+    "name": "myceliumail-wake",
+    "displayName": "Myceliumail Wake Agent",
+    "description": "Real-time agent wake-up via Myceliumail messages - receive push notifications when messages arrive",
+    "version": "0.1.0",
+    "publisher": "treebird",
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "AI",
+        "Other"
+    ],
+    "keywords": [
+        "ai",
+        "agent",
+        "messaging",
+        "myceliumail",
+        "realtime"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "configuration": {
+            "title": "Myceliumail Wake",
+            "properties": {
+                "myceliumail.agentId": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Your agent ID for receiving messages"
+                },
+                "myceliumail.supabaseUrl": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Supabase project URL"
+                },
+                "myceliumail.supabaseKey": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Supabase anon key"
+                },
+                "myceliumail.enableNotifications": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Show VS Code notifications for incoming messages"
+                },
+                "myceliumail.enableChatParticipant": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Enable @mycelium chat participant"
+                },
+                "myceliumail.autoConnect": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Automatically connect to Myceliumail on startup"
+                }
+            }
+        },
+        "commands": [
+            {
+                "command": "myceliumail.testWake",
+                "title": "Myceliumail: Test Wake Notification"
+            },
+            {
+                "command": "myceliumail.openInbox",
+                "title": "Myceliumail: Open Inbox"
+            },
+            {
+                "command": "myceliumail.reconnect",
+                "title": "Myceliumail: Reconnect"
+            },
+            {
+                "command": "myceliumail.disconnect",
+                "title": "Myceliumail: Disconnect"
+            },
+            {
+                "command": "myceliumail.showStatus",
+                "title": "Myceliumail: Show Connection Status"
+            }
+        ],
+        "chatParticipants": [
+            {
+                "id": "myceliumail.agent",
+                "name": "mycelium",
+                "fullName": "Myceliumail Agent",
+                "description": "Handle Myceliumail messages and agent communication",
+                "isSticky": false
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile",
+        "lint": "eslint src --ext ts",
+        "package": "npx vsce package"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "@types/vscode": "^1.85.0",
+        "@typescript-eslint/eslint-plugin": "^6.13.0",
+        "@typescript-eslint/parser": "^6.13.0",
+        "eslint": "^8.55.0",
+        "typescript": "^5.3.0"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.88.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/treebird7/myceliumail"
+    },
+    "license": "MIT"
+}
