@@ -1,0 +1,37 @@
+{
+  "branches": {
+    "feature/yosef-contribution": {
+      "name": "feature/yosef-contribution",
+      "files": [
+        "src/*"
+      ],
+      "status": "active",
+      "registeredAt": "2025-12-22T23:45:52.943Z"
+    },
+    "feature/realtime-notifications": {
+      "name": "feature/realtime-notifications",
+      "files": [
+        "src/lib/*"
+      ],
+      "status": "active",
+      "registeredAt": "2025-12-22T23:46:03.378Z"
+    },
+    "feature/dashboard-clean": {
+      "name": "feature/dashboard-clean",
+      "files": [
+        "src/commands/*"
+      ],
+      "status": "active",
+      "registeredAt": "2025-12-22T23:46:03.969Z"
+    },
+    "main": {
+      "name": "main",
+      "files": [
+        "src/*"
+      ],
+      "status": "active",
+      "registeredAt": "2025-12-22T23:46:32.459Z"
+    }
+  },
+  "version": "1.0"
+}

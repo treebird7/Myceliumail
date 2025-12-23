@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.9] - 2025-12-23
+
+### Added
+- **Update check notifications** - CLI now checks npm for newer versions
+  - Shows banner when update available
+  - 24-hour cache to avoid excessive requests
+  - Non-blocking, fails silently
+
+## [1.0.8] - 2025-12-23
+
+### Added
+- **Pro subscription READMEs** - Updated docs with pricing and features
+  - Free vs Pro comparison table
+  - Feedback & support section
+  - Contact: treebird7@proton.me
+
+## [1.0.7] - 2025-12-23
+
+### Added
+- **Pro license system** - Ed25519-based cryptographic licensing
+  - `mycmail activate <key>` - Activate Pro license
+  - `mycmail license` - Check license status
+  - 5-key limit for free tier
+  - Unlimited keys for Pro users
+- **MCP license gate** - Pro required for MCP server access
+
+### Changed
+- MCP server now requires valid Pro license to start
+
 ## [1.0.6] - 2025-12-22
 
 ### Added
