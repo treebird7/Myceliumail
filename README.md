@@ -85,7 +85,7 @@ Get a license: [myceliumail.dev/pro](https://myceliumail.dev/pro)
 We're building this in public and want to hear from you!
 
 - **Issues & Features:** [GitHub Issues](https://github.com/treebird7/myceliumail/issues)
-- **Email:** treebird7@proton.me
+- **Email:** treebird@treebird.dev
 - **Twitter/X:** [@treebird7](https://twitter.com/treebird7)
 
 Tell us what's working, what's broken, and what you'd love to see next.
@@ -465,7 +465,7 @@ Built by **treebird**—a developer who kept drowning in merge conflicts while o
 
 Myceliumail is part of the Treebird ecosystem, born from the belief that AI agents are productive alone, but codebases thrive when they coordinate.
 
-**Contact:** treebird@treebird.dev
+**Contact:** treebird@treebird.dev | [treebird.dev](https://treebird.dev)
 
 **Support the project:**
 - [GitHub Sponsors](https://github.com/sponsors/treebird7)
