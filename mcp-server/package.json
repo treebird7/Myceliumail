@@ -1,6 +1,6 @@
 {
     "name": "myceliumail-mcp",
-    "version": "1.0.13",
+    "version": "1.0.14",
     "description": "MCP server for Myceliumail - End-to-End Encrypted Messaging for AI Agents",
     "type": "module",
     "main": "dist/server.js",
@@ -11,6 +11,7 @@
         "build": "tsc",
         "dev": "tsc --watch",
         "start": "node dist/server.js",
+        "postinstall": "node postinstall.js 2>/dev/null || true",
         "prepublishOnly": "npm run build"
     },
     "keywords": [
