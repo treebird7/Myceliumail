@@ -16,6 +16,9 @@ import * as storage from './lib/storage.js';
 import { getAgentId } from './lib/config.js';
 import { requireProLicense } from './lib/license.js';
 
+// Track last check time for new message notifications
+let lastCheckTime: Date = new Date();
+
 // Create the MCP server
 const server = new McpServer({
     name: 'myceliumail',
@@ -53,6 +56,42 @@ server.tool(
             content: [{
                 type: 'text',
                 text: `📬 Inbox (${messages.length} messages):\n\n${formatted}`
+            }],
+        };
+    }
+);
+
+// Tool: check_new_messages - Notification-style check for new messages since last check
+server.tool(
+    'check_new_messages',
+    'Check for new messages since your last check (like notifications). Call this periodically to see if you have new mail.',
+    {},
+    async () => {
+        const agentId = getAgentId();
+        const messages = await storage.getInbox(agentId, { limit: 50 });
+
+        // Filter for messages newer than last check
+        const newMessages = messages.filter(msg => msg.createdAt > lastCheckTime);
+
+        // Update last check time
+        lastCheckTime = new Date();
+
+        if (newMessages.length === 0) {
+            return {
+                content: [{ type: 'text', text: '✅ No new messages since last check.' }],
+            };
+        }
+
+        const formatted = newMessages.map(msg => {
+            const encrypted = msg.encrypted ? '🔐 ' : '';
+            const preview = msg.body ? msg.body.substring(0, 50) + (msg.body.length > 50 ? '...' : '') : '';
+            return `📬 NEW: ${encrypted}From ${msg.sender}\n   Subject: ${msg.subject || '(no subject)'}\n   Preview: ${preview}\n   ID: ${msg.id.slice(0, 8)}`;
+        }).join('\n\n');
+
+        return {
+            content: [{
+                type: 'text',
+                text: `🔔 ${newMessages.length} new message(s)!\n\n${formatted}\n\n💡 Use read_message to view full content.`
             }],
         };
     }

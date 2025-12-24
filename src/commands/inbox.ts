@@ -7,11 +7,63 @@ import { loadConfig } from '../lib/config.js';
 import { loadKeyPair, decryptMessage } from '../lib/crypto.js';
 import * as storage from '../storage/supabase.js';
 
+/**
+ * Extract hashtag from subject (e.g., "#wake-feature: Message" -> "wake-feature")
+ */
+function extractTag(subject: string | null): string | null {
+    if (!subject) return null;
+    const match = subject.match(/^#([a-zA-Z0-9_-]+):/);
+    return match ? match[1].toLowerCase() : null;
+}
+
+interface DecryptedMessage {
+    original: any;
+    subject: string | null;
+    body: string | null;
+    tag: string | null;
+}
+
+/**
+ * Decrypt message subjects for filtering
+ */
+function decryptSubject(msg: any, keyPair: any): DecryptedMessage {
+    let subject = msg.subject;
+    let body = msg.body;
+
+    if (msg.encrypted && keyPair && msg.ciphertext && msg.nonce && msg.senderPublicKey) {
+        try {
+            const decrypted = decryptMessage({
+                ciphertext: msg.ciphertext,
+                nonce: msg.nonce,
+                senderPublicKey: msg.senderPublicKey,
+            }, keyPair);
+
+            if (decrypted) {
+                const parsed = JSON.parse(decrypted);
+                subject = parsed.subject || subject;
+                body = parsed.body || body;
+            }
+        } catch {
+            // Keep original
+        }
+    }
+
+    return {
+        original: msg,
+        subject,
+        body,
+        tag: extractTag(subject)
+    };
+}
+
 export function createInboxCommand(): Command {
     return new Command('inbox')
         .description('List incoming messages')
         .option('-u, --unread', 'Show only unread messages')
         .option('-l, --limit <n>', 'Limit number of messages', '10')
+        .option('-c, --count', 'Show only message count (for scripting)')
+        .option('-t, --tag <tag>', 'Filter by hashtag (e.g., --tag wake-feature)')
+        .option('--json', 'Output as JSON (for scripting)')
         .action(async (options) => {
             const config = loadConfig();
             const agentId = config.agentId;
@@ -23,46 +75,85 @@ export function createInboxCommand(): Command {
             }
 
             try {
-                const messages = await storage.getInbox(agentId, {
+                const rawMessages = await storage.getInbox(agentId, {
                     unreadOnly: options.unread,
-                    limit: parseInt(options.limit, 10),
+                    limit: parseInt(options.limit, 10) * (options.tag ? 10 : 1),
                 });
-
-                if (messages.length === 0) {
-                    console.log('📭 No messages');
-                    return;
-                }
-
-                console.log(`📬 Inbox for ${agentId} (${messages.length} messages)\n`);
 
                 const keyPair = loadKeyPair(agentId);
 
+                // Decrypt all subjects first for proper filtering
+                let messages = rawMessages.map(m => decryptSubject(m, keyPair));
+
+                // Filter by tag if specified
+                if (options.tag) {
+                    const targetTag = options.tag.toLowerCase().replace(/^#/, '');
+                    messages = messages.filter(m => m.tag === targetTag);
+                    messages = messages.slice(0, parseInt(options.limit, 10));
+                }
+
+                // Count-only mode
+                if (options.count) {
+                    const unreadCount = messages.filter(m => !m.original.read).length;
+                    if (options.json) {
+                        console.log(JSON.stringify({
+                            total: messages.length,
+                            unread: unreadCount,
+                            agentId,
+                            tag: options.tag || null
+                        }));
+                    } else {
+                        console.log(`${unreadCount} unread`);
+                    }
+                    return;
+                }
+
+                // JSON mode
+                if (options.json) {
+                    const output = {
+                        agentId,
+                        total: messages.length,
+                        unread: messages.filter(m => !m.original.read).length,
+                        tag: options.tag || null,
+                        messages: messages.map(m => ({
+                            id: m.original.id,
+                            from: m.original.sender,
+                            subject: m.subject,
+                            tag: m.tag,
+                            read: m.original.read,
+                            encrypted: m.original.encrypted,
+                            createdAt: m.original.createdAt.toISOString()
+                        }))
+                    };
+                    console.log(JSON.stringify(output, null, 2));
+                    return;
+                }
+
+                if (messages.length === 0) {
+                    if (options.tag) {
+                        console.log(`📭 No messages with tag #${options.tag}`);
+                    } else {
+                        console.log('📭 No messages');
+                    }
+                    return;
+                }
+
+                const tagInfo = options.tag ? ` [#${options.tag}]` : '';
+                console.log(`📬 Inbox for ${agentId}${tagInfo} (${messages.length} messages)\n`);
+
                 for (const msg of messages) {
-                    const readMarker = msg.read ? '  ' : '● ';
-                    const encryptedMarker = msg.encrypted ? '🔐 ' : '';
-                    const date = msg.createdAt.toLocaleString();
+                    const readMarker = msg.original.read ? '  ' : '● ';
+                    const encryptedMarker = msg.original.encrypted ? '🔐 ' : '';
+                    const date = msg.original.createdAt.toLocaleString();
 
-                    let displaySubject = msg.subject;
+                    let displaySubject = msg.subject || '[No Subject]';
 
-                    // Try to decrypt if encrypted and we have keys
-                    if (msg.encrypted && keyPair && msg.ciphertext && msg.nonce && msg.senderPublicKey) {
-                        try {
-                            const decrypted = decryptMessage({
-                                ciphertext: msg.ciphertext,
-                                nonce: msg.nonce,
-                                senderPublicKey: msg.senderPublicKey,
-                            }, keyPair);
-
-                            if (decrypted) {
-                                const parsed = JSON.parse(decrypted);
-                                displaySubject = parsed.subject || '[Decrypted]';
-                            }
-                        } catch {
-                            displaySubject = '[Encrypted]';
-                        }
+                    // Highlight tag in subject if present
+                    if (msg.tag) {
+                        displaySubject = displaySubject.replace(`#${msg.tag}:`, `[#${msg.tag}]`);
                     }
 
-                    console.log(`${readMarker}${encryptedMarker}${msg.id.slice(0, 8)} | From: ${msg.sender} | ${displaySubject}`);
+                    console.log(`${readMarker}${encryptedMarker}${msg.original.id.slice(0, 8)} | From: ${msg.original.sender} | ${displaySubject}`);
                     console.log(`   ${date}`);
                 }
 

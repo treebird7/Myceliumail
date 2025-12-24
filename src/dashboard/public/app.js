@@ -521,3 +521,120 @@ loadInbox();
 
 // Poll every 30 seconds as fallback (Realtime handles instant updates)
 setInterval(() => loadInbox(true), 30000);
+
+// ============== COMPOSE MESSAGE FUNCTIONS ==============
+
+let availableAgents = [];
+
+// Load available agents for compose dropdown
+async function loadAvailableAgents() {
+    try {
+        const res = await fetch('/api/config/agents');
+        const data = await res.json();
+        availableAgents = data.agents || [];
+        updateAgentDropdown();
+    } catch (err) {
+        console.error('Failed to load agents:', err);
+    }
+}
+
+function updateAgentDropdown() {
+    const select = document.getElementById('compose-from');
+    if (!select) return;
+
+    if (availableAgents.length === 0) {
+        select.innerHTML = `<option value="${currentAgentId}">${currentAgentId}</option>`;
+    } else {
+        select.innerHTML = availableAgents.map(agent =>
+            `<option value="${agent}" ${agent === 'treebird' ? 'selected' : ''}>${agent}</option>`
+        ).join('');
+    }
+}
+
+function showComposeModal() {
+    loadAvailableAgents();
+    document.getElementById('compose-modal').classList.remove('hidden');
+    document.getElementById('compose-to').focus();
+}
+
+function hideComposeModal() {
+    document.getElementById('compose-modal').classList.add('hidden');
+    // Clear form
+    document.getElementById('compose-to').value = '';
+    document.getElementById('compose-subject').value = '';
+    document.getElementById('compose-body').value = '';
+    document.getElementById('compose-files').value = '';
+}
+
+async function sendNewMessage() {
+    const from = document.getElementById('compose-from').value;
+    const to = document.getElementById('compose-to').value.trim();
+    const subject = document.getElementById('compose-subject').value.trim();
+    const body = document.getElementById('compose-body').value;
+    const fileInput = document.getElementById('compose-files');
+
+    if (!to) {
+        alert('Please enter a recipient');
+        return;
+    }
+    if (!subject) {
+        alert('Please enter a subject');
+        return;
+    }
+    if (!body.trim()) {
+        alert('Please enter a message');
+        return;
+    }
+
+    // Process attachments
+    const attachments = [];
+    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+    if (fileInput && fileInput.files.length > 0) {
+        for (const file of fileInput.files) {
+            if (file.size > MAX_SIZE) {
+                alert(`File "${file.name}" exceeds 5MB limit`);
+                return;
+            }
+            const base64 = await readFileAsBase64(file);
+            attachments.push({
+                name: file.name,
+                type: file.type || 'application/octet-stream',
+                data: base64,
+                size: file.size
+            });
+        }
+    }
+
+    try {
+        console.log('Sending message from:', from, 'to:', to);
+        const response = await fetch('/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                to: to,
+                subject: subject,
+                body: body,
+                from: from,
+                attachments: attachments.length > 0 ? attachments : undefined
+            })
+        });
+
+        const result = await response.json();
+        console.log('Send result:', result);
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to send');
+        }
+
+        hideComposeModal();
+        alert('Message sent!' + (attachments.length > 0 ? ` (${attachments.length} attachment(s))` : ''));
+        loadInbox(true);
+    } catch (err) {
+        console.error('Send message error:', err);
+        alert('Failed to send message: ' + err.message);
+    }
+}
+
+// Load agents on startup
+loadAvailableAgents();

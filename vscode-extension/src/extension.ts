@@ -116,10 +116,10 @@ function registerCommands(context: vscode.ExtensionContext): void {
         vscode.commands.registerCommand('myceliumail.testWake', async () => {
             const testMessage: AgentMessage = {
                 id: 'test-' + Date.now(),
-                sender: 'test-agent',
-                recipient: loadConfiguration().agentId || 'you',
+                from_agent: 'test-agent',
+                to_agent: loadConfiguration().agentId || 'you',
                 subject: 'Test Wake Notification',
-                body: 'This is a test message to verify the wake notification system is working correctly.',
+                message: 'This is a test message to verify the wake notification system is working correctly.',
                 encrypted: false,
                 read: false,
                 archived: false,

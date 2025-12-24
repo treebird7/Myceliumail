@@ -20,7 +20,7 @@ export async function handleIncomingMessage(
 ): Promise<void> {
     // Format notification title
     const priorityEmoji = getPriorityEmoji(message.priority);
-    const title = `${priorityEmoji} ${message.sender}: ${message.subject || '(no subject)'}`;
+    const title = `${priorityEmoji} ${message.from_agent}: ${message.subject || '(no subject)'}`;
 
     if (config.enableNotifications) {
         await showNotification(message, title, context);
@@ -106,10 +106,10 @@ export async function triggerChatAgent(message: AgentMessage): Promise<void> {
  */
 function formatMessageForChat(message: AgentMessage): string {
     const lines = [
-        `New message from **${message.sender}**`,
+        `New message from **${message.from_agent}**`,
         `Subject: ${message.subject || '(none)'}`,
         '',
-        message.body || '(empty body)',
+        message.message || '(empty body)',
         '',
         `Message ID: ${message.id.slice(0, 8)}`
     ];
@@ -126,7 +126,7 @@ async function openMessageWebview(
 ): Promise<void> {
     const panel = vscode.window.createWebviewPanel(
         'myceliumailMessage',
-        `📬 ${message.sender}: ${message.subject || 'Message'}`,
+        `📬 ${message.from_agent}: ${message.subject || 'Message'}`,
         vscode.ViewColumn.Beside,
         {
             enableScripts: true,
@@ -175,7 +175,7 @@ function getMessageWebviewContent(message: AgentMessage): string {
             color: var(--vscode-descriptionForeground);
             font-size: 0.9em;
         }
-        .body {
+        .message {
             line-height: 1.6;
             white-space: pre-wrap;
         }
@@ -199,16 +199,16 @@ function getMessageWebviewContent(message: AgentMessage): string {
 <body>
     <div class="header">
         <div class="from">
-            ${priorityEmoji} From: <strong>${escapeHtml(message.sender)}</strong>
+            ${priorityEmoji} From: <strong>${escapeHtml(message.from_agent)}</strong>
             <span class="priority-badge priority-${message.priority}">${message.priority}</span>
             ${message.encrypted ? '<span class="encrypted-badge">🔒 Encrypted</span>' : ''}
         </div>
         <div class="subject">${escapeHtml(message.subject || '(no subject)')}</div>
         <div class="meta">
-            To: ${escapeHtml(message.recipient)} • ${createdAt}
+            To: ${escapeHtml(message.to_agent)} • ${createdAt}
         </div>
     </div>
-    <div class="body">${escapeHtml(message.body || '(no content)')}</div>
+    <div class="body">${escapeHtml(message.message || '(no content)')}</div>
 </body>
 </html>`;
 }
@@ -247,7 +247,7 @@ export async function openInbox(context: vscode.ExtensionContext): Promise<void>
     }
 
     const items = messages.map(m => ({
-        label: `${getPriorityEmoji(m.priority)} ${m.sender}`,
+        label: `${getPriorityEmoji(m.priority)} ${m.from_agent}`,
         description: m.subject || '(no subject)',
         detail: new Date(m.created_at).toLocaleString(),
         message: m

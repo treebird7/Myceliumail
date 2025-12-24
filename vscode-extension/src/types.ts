@@ -4,10 +4,10 @@
 
 export interface AgentMessage {
     id: string;
-    sender: string;
-    recipient: string;
+    from_agent: string;
+    to_agent: string;
     subject: string | null;
-    body: string | null;
+    message: string | null;
     encrypted: boolean;
     read: boolean;
     archived: boolean;

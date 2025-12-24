@@ -30,7 +30,8 @@
         "src/*"
       ],
       "status": "active",
-      "registeredAt": "2025-12-22T23:46:32.459Z"
+      "registeredAt": "2025-12-22T23:46:32.459Z",
+      "description": "Fix Wake Agent Realtime filter: to_agent -> recipient"
     }
   },
   "version": "1.0"

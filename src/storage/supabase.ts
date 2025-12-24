@@ -221,6 +221,77 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
 }
 
 /**
+ * Get inbox messages for multiple agents from Supabase
+ */
+export async function getMultiAgentInbox(agentIds: string[], options?: InboxOptions): Promise<Message[]> {
+    const client = createClient();
+
+    if (!client || agentIds.length === 0) {
+        // For local storage, aggregate from all agents
+        if (agentIds.length === 0) return [];
+        const allMessages: Message[] = [];
+        for (const agentId of agentIds) {
+            const msgs = await local.getInbox(agentId, options);
+            allMessages.push(...msgs);
+        }
+        // Sort by date descending and apply limit
+        allMessages.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+        return options?.limit ? allMessages.slice(0, options.limit) : allMessages;
+    }
+
+    // Build query with IN clause for multiple agents
+    const agentList = agentIds.map(id => `"${id}"`).join(',');
+    let query = `/agent_messages?to_agent=in.(${agentList})&order=created_at.desc`;
+
+    if (options?.unreadOnly) {
+        query += '&read=eq.false';
+    }
+
+    if (options?.limit) {
+        query += `&limit=${options.limit}`;
+    }
+
+    const results = await supabaseRequest<Array<{
+        id: string;
+        from_agent: string;
+        to_agent: string;
+        subject: string;
+        message: string;
+        encrypted: boolean;
+        read: boolean;
+        created_at: string;
+    }>>(client, query);
+
+    return results.map(r => {
+        // Parse encrypted message
+        let ciphertext, nonce, senderPublicKey, body = r.message;
+        if (r.encrypted && r.message) {
+            try {
+                const enc = JSON.parse(r.message);
+                ciphertext = enc.ciphertext;
+                nonce = enc.nonce;
+                senderPublicKey = enc.sender_public_key;
+                body = '';
+            } catch { }
+        }
+        return {
+            id: r.id,
+            sender: r.from_agent,
+            recipient: r.to_agent,
+            subject: r.subject || '',
+            body,
+            encrypted: r.encrypted,
+            ciphertext,
+            nonce,
+            senderPublicKey,
+            read: r.read,
+            archived: false,
+            createdAt: new Date(r.created_at),
+        };
+    });
+}
+
+/**
  * Get a specific message (supports partial ID lookup)
  */
 export async function getMessage(id: string): Promise<Message | null> {

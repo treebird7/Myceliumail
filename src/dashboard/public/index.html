@@ -45,14 +45,72 @@
                 <div
                     class="p-4 border-b border-gray-800 bg-gray-900/50 backdrop-blur flex items-center justify-between">
                     <h2 class="text-xl font-semibold text-gray-200">Inbox</h2>
-                    <button onclick="loadInbox(false)"
-                        class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-                        title="Refresh inbox">
-                        🔄
-                    </button>
+                    <div class="flex gap-2">
+                        <button onclick="showComposeModal()"
+                            class="px-3 py-1.5 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-500 transition-colors flex items-center gap-1.5"
+                            title="Compose new message">
+                            ✉️ Compose
+                        </button>
+                        <button onclick="loadInbox(false)"
+                            class="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                            title="Refresh inbox">
+                            🔄
+                        </button>
+                    </div>
                 </div>
                 <div id="inbox-list" class="flex-1 overflow-y-auto p-2 space-y-2">
                     <!-- Messages will act here -->
+                </div>
+            </div>
+
+            <!-- Compose Modal -->
+            <div id="compose-modal"
+                class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div
+                    class="bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+                        <h2 class="text-2xl font-bold text-white">✉️ Compose Message</h2>
+                        <button onclick="hideComposeModal()"
+                            class="text-gray-400 hover:text-white text-2xl">&times;</button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-400 mb-2">From:</label>
+                                <select id="compose-from"
+                                    class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none">
+                                    <option value="">Loading agents...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-400 mb-2">To:</label>
+                                <input type="text" id="compose-to" placeholder="recipient agent ID"
+                                    class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-2">Subject:</label>
+                            <input type="text" id="compose-subject" placeholder="Message subject"
+                                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-2">Message:</label>
+                            <textarea id="compose-body" rows="8" placeholder="Write your message..."
+                                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-purple-500 focus:outline-none resize-none"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-2">Attachments (optional):</label>
+                            <input type="file" id="compose-files" multiple
+                                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-purple-600 file:text-white file:cursor-pointer">
+                        </div>
+                        <div class="flex gap-4 justify-end pt-4">
+                            <button onclick="hideComposeModal()"
+                                class="px-6 py-3 bg-gray-800 text-gray-300 rounded-lg hover:bg-gray-700">Cancel</button>
+                            <button onclick="sendNewMessage()"
+                                class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-500 font-medium">Send
+                                Message</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

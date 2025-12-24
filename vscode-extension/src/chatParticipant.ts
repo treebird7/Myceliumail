@@ -77,12 +77,12 @@ async function handleInboxRequest(
 
         for (const msg of messages.slice(0, 10)) {
             const date = new Date(msg.created_at).toLocaleString();
-            const preview = msg.body?.slice(0, 100) || '(no content)';
+            const preview = msg.message?.slice(0, 100) || '(no content)';
 
-            stream.markdown(`### ${getPriorityEmoji(msg.priority)} From: **${msg.sender}**\n`);
+            stream.markdown(`### ${getPriorityEmoji(msg.priority)} From: **${msg.from_agent}**\n`);
             stream.markdown(`**Subject:** ${msg.subject || '(none)'}\n`);
             stream.markdown(`**Date:** ${date}\n\n`);
-            stream.markdown(`> ${preview}${(msg.body?.length || 0) > 100 ? '...' : ''}\n\n`);
+            stream.markdown(`> ${preview}${(msg.message?.length || 0) > 100 ? '...' : ''}\n\n`);
             stream.markdown('---\n\n');
         }
 

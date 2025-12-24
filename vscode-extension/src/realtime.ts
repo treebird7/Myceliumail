@@ -106,7 +106,7 @@ export class RealtimeConnection implements vscode.Disposable {
                         event: 'INSERT',
                         schema: 'public',
                         table: 'agent_messages',
-                        filter: `recipient=eq.${this.config.agentId}`
+                        filter: `to_agent=eq.${this.config.agentId}`
                     },
                     (payload) => {
                         this.handleMessage(payload.new as AgentMessage);
@@ -166,7 +166,7 @@ export class RealtimeConnection implements vscode.Disposable {
      * Handle incoming message
      */
     private handleMessage(message: AgentMessage): void {
-        this.log(`📬 New message from ${message.sender}: ${message.subject || '(no subject)'}`);
+        this.log(`📬 New message from ${message.from_agent}: ${message.subject || '(no subject)'}`);
 
         for (const callback of this.messageCallbacks) {
             try {

@@ -46,9 +46,38 @@ export async function registerRoutes(fastify: FastifyInstance) {
     const config = loadConfig();
     const agentId = config.agentId;
 
-    // GET /api/inbox
+    // GET /api/config/agents - List all agent IDs with keys
+    fastify.get('/api/config/agents', async (request, reply) => {
+        const agents = listOwnKeys();
+        // Include config agent if not already in list
+        if (agentId && !agents.includes(agentId)) {
+            agents.unshift(agentId);
+        }
+        return { agents };
+    });
+
+    // GET /api/inbox - Now supports multi-agent queries
     fastify.get('/api/inbox', async (request, reply) => {
-        const messages = await storage.getInbox(agentId, { limit: 100 });
+        const queryAgents = (request.query as { agents?: string }).agents;
+
+        let messages;
+        if (queryAgents) {
+            // Use specific agents if provided
+            const agentIds = queryAgents.split(',').map(s => s.trim());
+            messages = await storage.getMultiAgentInbox(agentIds, { limit: 100 });
+        } else {
+            // Default: get messages for ALL agents with keys
+            const allAgentIds = listOwnKeys();
+            if (agentId && !allAgentIds.includes(agentId)) {
+                allAgentIds.unshift(agentId);
+            }
+            if (allAgentIds.length > 0) {
+                messages = await storage.getMultiAgentInbox(allAgentIds, { limit: 100 });
+            } else {
+                // Fallback to single agent query
+                messages = await storage.getInbox(agentId, { limit: 100 });
+            }
+        }
 
         // Decrypt encrypted messages using all available keys
         const decrypted = messages.map(tryDecryptWithAllKeys);

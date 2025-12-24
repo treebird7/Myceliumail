@@ -34,6 +34,10 @@ import { createWatchCommand } from '../commands/watch.js';
 import { createExportCommand } from '../commands/export.js';
 import { createStatusCommand } from '../commands/status.js';
 import { createActivateCommand, createLicenseStatusCommand } from '../commands/activate.js';
+import { createWakeCommand } from '../commands/wake.js';
+import { createCloseCommand } from '../commands/close.js';
+import { createTagsCommand } from '../commands/tags.js';
+import { createCollabCommand } from '../commands/collab.js';
 import { checkForUpdates } from '../lib/update-check.js';
 
 const program = new Command();
@@ -63,6 +67,12 @@ program.addCommand(createBroadcastCommand());
 program.addCommand(createWatchCommand());
 program.addCommand(createExportCommand());
 program.addCommand(createStatusCommand());
+
+// Session lifecycle commands
+program.addCommand(createWakeCommand());
+program.addCommand(createCloseCommand());
+program.addCommand(createTagsCommand());
+program.addCommand(createCollabCommand());
 
 // License management
 program.addCommand(createActivateCommand());
