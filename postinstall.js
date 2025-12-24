@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-console.log(`
+// Write to stderr so it shows even during npm install
+process.stderr.write(`
 \x1b[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\x1b[0m
 \x1b[33m🍄 Thanks for installing Myceliumail!\x1b[0m
 
