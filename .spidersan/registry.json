@@ -27,11 +27,12 @@
     "main": {
       "name": "main",
       "files": [
-        "src/*"
+        "src/*",
+        "src/commands/*"
       ],
       "status": "active",
       "registeredAt": "2025-12-22T23:46:32.459Z",
-      "description": "Fix Wake Agent Realtime filter: to_agent -> recipient"
+      "description": "collab command + mobile app + wake/close"
     }
   },
   "version": "1.0"
