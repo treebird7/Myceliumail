@@ -5,10 +5,26 @@
  * - Notifications
  * - Webview panels
  * - Chat participant triggers
+ * - Action dispatching
  */
 
 import * as vscode from 'vscode';
 import { AgentMessage, WakeConfig } from './types';
+
+/**
+ * Parse action command from message subject
+ */
+function parseActionFromSubject(subject: string | null): { action: string; args: string } | null {
+    if (!subject) return null;
+    const match = subject.match(/\[action:\s*([^\]]+)\](?:\s+(.*))?/i);
+    if (match) {
+        return {
+            action: match[1].trim().toLowerCase(),
+            args: (match[2] || '').trim()
+        };
+    }
+    return null;
+}
 
 /**
  * Main message handler - dispatches to appropriate UI
@@ -22,9 +38,103 @@ export async function handleIncomingMessage(
     const priorityEmoji = getPriorityEmoji(message.priority);
     const title = `${priorityEmoji} ${message.from_agent}: ${message.subject || '(no subject)'}`;
 
+    // Check for action command
+    const actionParsed = parseActionFromSubject(message.subject);
+    
+    if (actionParsed) {
+        // Action found - execute it automatically
+        await executeAction(actionParsed.action, actionParsed.args, message);
+    }
+
     if (config.enableNotifications) {
         await showNotification(message, title, context);
     }
+}
+
+/**
+ * Execute action based on command
+ */
+async function executeAction(
+    action: string,
+    args: string,
+    message: AgentMessage
+): Promise<void> {
+    try {
+        switch (action) {
+            case 'log':
+                await logAction(message, args);
+                break;
+            case 'open-file':
+                await openFileAction(args);
+                break;
+            case 'show-message':
+                await showMessageAction(args);
+                break;
+            case 'open-terminal':
+                await openTerminalAction();
+                break;
+            case 'status':
+                await showStatusAction(message);
+                break;
+            case 'echo':
+                await showStatusAction(message);
+                break;
+            default:
+                vscode.window.showInformationMessage(
+                    `Unknown action: ${action}. Known actions: log, open-file, show-message, open-terminal, status, echo`
+                );
+        }
+    } catch (error) {
+        vscode.window.showErrorMessage(
+            `Action ${action} failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+    }
+}
+
+/**
+ * Log action - write to output channel
+ */
+async function logAction(message: AgentMessage, args: string): Promise<void> {
+    const channel = vscode.window.createOutputChannel('Myceliumail Actions');
+    const timestamp = new Date().toISOString();
+    channel.appendLine(`[${timestamp}] ${message.from_agent}: ${args}`);
+    channel.show();
+}
+
+/**
+ * Open file action
+ */
+async function openFileAction(filePath: string): Promise<void> {
+    try {
+        const uri = vscode.Uri.file(filePath);
+        const doc = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(doc);
+    } catch (error) {
+        throw new Error(`Could not open file: ${filePath}`);
+    }
+}
+
+/**
+ * Show message action
+ */
+async function showMessageAction(message: string): Promise<void> {
+    await vscode.window.showInformationMessage(message);
+}
+
+/**
+ * Open terminal action
+ */
+async function openTerminalAction(): Promise<void> {
+    const terminal = vscode.window.createTerminal('Myceliumail');
+    terminal.show();
+}
+
+/**
+ * Show status action
+ */
+async function showStatusAction(message: AgentMessage): Promise<void> {
+    const status = `From: ${message.from_agent}\nSubject: ${message.subject || '(no subject)'}\n\n${message.message || '(no content)'}`;
+    await vscode.window.showInformationMessage(status);
 }
 
 /**
@@ -53,29 +163,14 @@ async function showNotification(
     // Keep only last 50 messages
     await context.globalState.update('recentMessages', messages.slice(0, 50));
 
-    // Choose notification type based on priority
-    const showMessage = message.priority === 'urgent' || message.priority === 'high'
-        ? vscode.window.showWarningMessage
-        : vscode.window.showInformationMessage;
-
-    const action = await showMessage(
-        title,
-        'Open in Chat',
-        'View Message',
-        'Mark as Read'
-    );
-
-    switch (action) {
-        case 'Open in Chat':
-            await triggerChatAgent(message);
-            break;
-        case 'View Message':
-            await openMessageWebview(message, context);
-            break;
-        case 'Mark as Read':
-            await markAsRead(message);
-            break;
-    }
+    // Show notification WITHOUT waiting for interaction (non-blocking)
+    // Use showInformationMessage with no await to show and continue
+    const infoMsg = message.priority === 'urgent' || message.priority === 'high'
+        ? `🚨 ${title}`
+        : `📬 ${title}`;
+    
+    // Show notification but don't wait for response - it auto-dismisses
+    vscode.window.showInformationMessage(infoMsg);
 }
 
 /**

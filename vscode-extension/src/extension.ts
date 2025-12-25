@@ -8,7 +8,7 @@
 
 import * as vscode from 'vscode';
 import { RealtimeConnection } from './realtime';
-import { handleIncomingMessage, openInbox, triggerChatAgent } from './handlers';
+import { handleIncomingMessage, openInbox } from './handlers';
 import { createChatParticipant } from './chatParticipant';
 import { WakeConfig, ConnectionState, AgentMessage } from './types';
 
