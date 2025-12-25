@@ -2,6 +2,7 @@
  * Watch Command
  * 
  * Listen for new messages in real-time and show desktop notifications.
+ * Can also trigger wake sequence and log to collaborative files.
  */
 
 import { Command } from 'commander';
@@ -11,6 +12,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { loadConfig } from '../lib/config.js';
 import { subscribeToMessages, closeConnection } from '../lib/realtime.js';
+import { triggerWakeSequence } from '../lib/webhook-handler.js';
 
 interface InboxStatus {
     status: 0 | 1 | 2;  // 0=none, 1=new message, 2=urgent
@@ -65,6 +67,7 @@ export function createWatchCommand(): Command {
         .option('-a, --agent <id>', 'Agent ID to watch (default: current agent)')
         .option('-q, --quiet', 'Suppress console output, only show notifications')
         .option('-s, --status-file', 'Write notification status to ~/.mycmail/inbox_status.json')
+        .option('--wake', 'Trigger wake sequence and log to collaborative files on new message')
         .option('--clear-status', 'Clear the status file and exit')
         .action(async (options) => {
             // Handle --clear-status flag
@@ -90,6 +93,22 @@ export function createWatchCommand(): Command {
             const channel = subscribeToMessages(
                 agentId,
                 (message) => {
+                    // Trigger wake sequence if enabled
+                    if (options.wake) {
+                        const webhookMessage = {
+                            id: message.id,
+                            recipient: agentId,
+                            sender: message.from_agent,
+                            subject: message.subject,
+                            created_at: message.created_at,
+                        };
+                        triggerWakeSequence(agentId, webhookMessage).catch(err => {
+                            if (!options.quiet) {
+                                console.error('⚠️ Wake trigger failed:', err.message);
+                            }
+                        });
+                    }
+
                     // Update status file if enabled
                     if (options.statusFile) {
                         const currentStatus = readInboxStatus();
@@ -116,6 +135,9 @@ export function createWatchCommand(): Command {
                     if (!options.quiet) {
                         const time = new Date(message.created_at).toLocaleTimeString();
                         console.log(`📬 [${time}] New message from ${message.from_agent}`);
+                        if (options.wake) {
+                            console.log(`   🌅 Wake sequence triggered`);
+                        }
                         console.log(`   Subject: ${message.subject}`);
                         if (!message.encrypted) {
                             const preview = message.message.length > 80

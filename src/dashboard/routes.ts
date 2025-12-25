@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { loadConfig } from '../lib/config.js';
 import * as storage from '../storage/supabase.js';
 import { loadKeyPair, decryptMessage, listOwnKeys } from '../lib/crypto.js';
+import { handleWebhook } from '../lib/webhook-handler.js';
 import type { Message } from '../types/index.js';
 
 // Try to decrypt a message using any available key
@@ -153,5 +154,34 @@ export async function registerRoutes(fastify: FastifyInstance) {
             supabaseUrl: config.supabaseUrl,
             supabaseKey: config.supabaseKey
         };
+    });
+
+    // POST /api/webhook/agent-message - Supabase webhook for new messages
+    // Triggered when a new message arrives for the agent
+    fastify.post('/api/webhook/agent-message', async (request, reply) => {
+        const body = request.body as {
+            type: string;
+            record?: {
+                id: string;
+                recipient: string;
+                sender: string;
+                subject?: string;
+                created_at: string;
+            };
+        };
+
+        try {
+            // Use the sophisticated webhook handler
+            const result = await handleWebhook(agentId, body);
+            return result;
+        } catch (error) {
+            console.error('Webhook error:', error);
+            return { 
+                success: false, 
+                processed: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                timestamp: new Date().toISOString()
+            };
+        }
     });
 }

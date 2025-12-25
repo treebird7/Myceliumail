@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-12-25
+
+### Added
+- **Agent Wake System** - Automated agent response to incoming messages
+  - `mycmail watch --wake` - Trigger wake sequence on new messages
+  - Wake sequence logs to collaborative files for team visibility
+  - Automatic comment timestamping in markdown files
+  - Real-time message detection and processing
+- **Action Dispatcher** - Execute actions based on message subjects
+  - Parse `[action: name] args` format from message subjects
+  - Built-in actions: `log`, `inbox`, `broadcast`, `collab`, `status`, `echo`
+  - Extensible action handler system for custom actions
+  - Action results logged to collaborative files
+- **Webhook Handler** - Production-ready webhook support
+  - `POST /api/webhook/agent-message` endpoint in dashboard
+  - Supabase webhook integration for always-on agents
+  - Safe concurrent file operations using append mode
+  - Comprehensive error handling and logging
+- **VS Code Extension Actions** - Action dispatcher in VS Code
+  - Auto-execute actions from incoming messages
+  - Built-in actions: `log`, `open-file`, `show-message`, `open-terminal`, `status`, `echo`
+  - Non-blocking notifications (auto-dismiss)
+- **Documentation** - Comprehensive guides for new features
+  - `docs/AGENT_WAKE_FLOW.md` - Complete wake flow documentation
+  - `docs/ACTION_DISPATCHER.md` - Action dispatcher guide with examples
+  - `docs/WEBHOOK_SETUP.md` - Production webhook setup guide
+  - `docs/TESTING_WAKE_SYSTEM.md` - Step-by-step testing instructions
+  - `docs/TEST_RESULTS.md` - Verified test results (100% pass rate)
+- **Database Migration** - Security improvements
+  - `supabase/migrations/002_fix_security_advisor.sql`
+  - Convert views to SECURITY INVOKER (safer permissions)
+  - Enable RLS on agent_aliases table
+
+### Changed
+- VS Code extension notifications now auto-dismiss (non-blocking)
+- Watch command enhanced with wake sequence integration
+
+### Fixed
+- Security advisor warnings for Supabase views
+- VS Code extension removed unused imports
+
+
 ## [1.0.9] - 2025-12-23
 
 ### Added
