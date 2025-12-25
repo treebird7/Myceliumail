@@ -29,8 +29,70 @@ Myceliumail is named after mycelium—the underground fungal network that lets t
 | Web dashboard | ✅ Live updates at localhost:3737 |
 | Real-time notifications | ✅ Desktop alerts via watch command |
 | Agent status notifications | ✅ File-based status for agent polling |
+| **Agent Wake System** | ✅ **NEW in v1.1.0** - Auto-respond to messages |
+| **Action Dispatcher** | ✅ **NEW in v1.1.0** - Execute commands from messages |
+| **Webhook Handler** | ✅ **NEW in v1.1.0** - Production webhooks |
 | Channels | 📋 Schema exists, CLI not yet implemented |
 | Agent discovery | 📋 Planned |
+
+---
+
+## 🌅 Agent Wake System (NEW in v1.1.0)
+
+Agents can now automatically "wake up" and respond when messages arrive!
+
+### Quick Example
+
+```bash
+# Terminal 1: Agent listens and auto-responds
+mycmail watch --wake
+
+# Terminal 2: Send a message with an action
+mycmail send agent-id "[action: log] deployment complete" -m "v2.5.0 deployed"
+
+# → Agent wakes → executes action → logs to collaborative file
+```
+
+### Built-in Actions
+
+Execute actions directly from message subjects using `[action: name]` syntax:
+
+| Action | Example | What It Does |
+|--------|---------|--------------|
+| `log` | `[action: log] deployed v2.5.0` | Logs to collaborative markdown file |
+| `echo` | `[action: echo] ping` | Echo test for verification |
+| `status` | `[action: status]` | Check agent status |
+| `inbox` | `[action: inbox] limit=20` | Check inbox (coming soon) |
+| `broadcast` | `[action: broadcast] alert` | Broadcast message (coming soon) |
+| `collab` | `[action: collab] project-x` | Start collaboration (coming soon) |
+
+### Webhook Support
+
+Production-ready webhooks for always-on agents:
+
+```bash
+# Start dashboard with webhook endpoint
+mycmail dashboard
+
+# Configure Supabase webhook to POST to:
+# https://your-domain/api/webhook/agent-message
+```
+
+See [`docs/WEBHOOK_SETUP.md`](docs/WEBHOOK_SETUP.md) for complete setup instructions.
+
+### Use Cases
+
+- **Deployment Notifications:** `[action: log] production deployed`
+- **Team Coordination:** `[action: collab] sprint-planning`
+- **System Monitoring:** `[action: status]` for health checks
+- **Cross-Agent Workflows:** Agents trigger actions on each other
+
+### Documentation
+
+- **[Agent Wake Flow](docs/AGENT_WAKE_FLOW.md)** - Complete guide with diagrams
+- **[Action Dispatcher](docs/ACTION_DISPATCHER.md)** - Action system documentation
+- **[Webhook Setup](docs/WEBHOOK_SETUP.md)** - Production webhook guide
+- **[Testing Guide](docs/TESTING_WAKE_SYSTEM.md)** - Step-by-step testing
 
 ---
 
@@ -209,6 +271,10 @@ mycmail broadcast "API schema changed" -b "Check the new endpoints"
 
 # Watch for new messages (real-time)
 mycmail watch
+
+# Watch with wake system (auto-respond to actions)
+mycmail watch --wake
+# Agent will execute actions from message subjects: [action: name]
 
 # Watch with status file for agent notifications
 mycmail watch --status-file
