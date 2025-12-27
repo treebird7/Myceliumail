@@ -88,10 +88,12 @@ Looking forward to contributing!`;
 
                     // Notify birdsan
                     try {
-                        const { execSync } = await import('child_process');
-                        execSync(`mycmail send bsan "Joined collab" --message "${agentName} has joined: ${path.basename(filepath)}" -p`, {
-                            stdio: 'ignore'
-                        });
+                        const { execFileSync } = await import('child_process');
+                        execFileSync('mycmail', [
+                            'send', 'bsan', 'Joined collab',
+                            '--message', `${agentName} has joined: ${path.basename(filepath)}`,
+                            '-p'
+                        ], { stdio: 'ignore' });
                         console.log('✓ Notified birdsan');
                     } catch {
                         // Ignore notification errors
