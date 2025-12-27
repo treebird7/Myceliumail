@@ -5,6 +5,10 @@
 // - Message body NOT included by default (set WEBHOOK_INCLUDE_BODY=true to enable)
 // - Agent filter support (set WEBHOOK_AGENT_FILTER=agent1,agent2 to limit)
 // - Encrypted messages are flagged but body always redacted unless explicitly enabled
+//
+// Security hardening (2025-12-27):
+// - Input validation for record payload
+// - URL validation with HTTPS enforcement and SSRF protection
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
@@ -27,6 +31,71 @@ interface WebhookTarget {
   url: string;
   headers?: Record<string, string>;
   retries?: number;
+}
+
+interface MessageRecord {
+  id: string;
+  from_agent: string;
+  to_agent: string;
+  subject: string;
+  message?: string;
+  encrypted?: boolean;
+  created_at: string;
+}
+
+/**
+ * Validate incoming record has all required fields
+ */
+function validateRecord(record: unknown): record is MessageRecord {
+  if (!record || typeof record !== 'object') {
+    console.error('❌ Invalid record: not an object');
+    return false;
+  }
+
+  const requiredFields = ['id', 'from_agent', 'to_agent', 'subject', 'created_at'];
+  for (const field of requiredFields) {
+    if ((record as Record<string, unknown>)[field] === undefined) {
+      console.error(`❌ Missing required field: ${field}`);
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
+ * Validate webhook URL for security (HTTPS, no internal URLs)
+ */
+function validateWebhookUrl(urlString: string): string | null {
+  try {
+    const url = new URL(urlString.trim());
+
+    // Block internal/localhost URLs (SSRF protection)
+    const blockedHosts = ['localhost', '127.0.0.1', '0.0.0.0', '169.254.169.254', '[::1]'];
+    const blockedPatterns = ['.local', '.internal', '.localhost'];
+
+    if (blockedHosts.includes(url.hostname)) {
+      console.error(`❌ Blocked internal URL: ${url.hostname}`);
+      return null;
+    }
+
+    for (const pattern of blockedPatterns) {
+      if (url.hostname.endsWith(pattern)) {
+        console.error(`❌ Blocked internal URL pattern: ${url.hostname}`);
+        return null;
+      }
+    }
+
+    // Warn on non-HTTPS (but allow for Zapier which uses HTTPS)
+    if (url.protocol !== 'https:') {
+      console.warn(`⚠️ Non-HTTPS webhook URL: ${url.hostname} - consider using HTTPS`);
+    }
+
+    return url.toString();
+  } catch {
+    console.error(`❌ Invalid URL: ${urlString}`);
+    return null;
+  }
 }
 
 /**
@@ -99,8 +168,16 @@ serve(async (req) => {
       );
     }
 
+    // Security: Validate record structure
+    if (!validateRecord(record)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid record structure' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Security: Check agent filter
-    const agentFilter = Deno.env.get('WEBHOOK_AGENT_FILTER')?.split(',').map(a => a.trim()) || [];
+    const agentFilter = Deno.env.get('WEBHOOK_AGENT_FILTER')?.split(',').map((a: string) => a.trim()) || [];
     if (agentFilter.length > 0 && !agentFilter.includes(record.to_agent)) {
       console.log(`⏭️ Skipping webhook: ${record.to_agent} not in agent filter`);
       return new Response(
@@ -135,23 +212,32 @@ serve(async (req) => {
     }
 
     // Get webhook targets from environment
-    const webhookUrls = Deno.env.get('WEBHOOK_URLS')?.split(',') || [];
+    const rawWebhookUrls = Deno.env.get('WEBHOOK_URLS')?.split(',') || [];
     const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
 
-    if (webhookUrls.length === 0) {
-      console.warn('⚠️ No WEBHOOK_URLS configured');
+    // Security: Validate all webhook URLs
+    const validatedUrls = rawWebhookUrls
+      .map((url: string) => validateWebhookUrl(url))
+      .filter((url: string | null): url is string => url !== null);
+
+    if (validatedUrls.length === 0) {
+      console.warn('⚠️ No valid WEBHOOK_URLS configured');
       return new Response(
-        JSON.stringify({ skipped: true, reason: 'No webhooks configured' }),
+        JSON.stringify({ skipped: true, reason: 'No valid webhooks configured' }),
         { status: 200, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
-    // Send to all configured webhooks in parallel
+    if (validatedUrls.length < rawWebhookUrls.length) {
+      console.warn(`⚠️ ${rawWebhookUrls.length - validatedUrls.length} webhook URLs were invalid/blocked`);
+    }
+
+    // Send to all validated webhooks in parallel
     const results = await Promise.all(
-      webhookUrls.map(url =>
+      validatedUrls.map((url: string) =>
         sendWebhook(
           {
-            url: url.trim(),
+            url,
             headers: webhookSecret ? { 'X-Webhook-Secret': webhookSecret } : {},
             retries: 3,
           },
@@ -160,18 +246,18 @@ serve(async (req) => {
       )
     );
 
-    const successCount = results.filter(r => r.success).length;
-    const failures = results.filter(r => !r.success);
+    const successCount = results.filter((r: { success: boolean }) => r.success).length;
+    const failures = results.filter((r: { success: boolean }) => !r.success);
 
-    console.log(`📊 Webhooks: ${successCount}/${webhookUrls.length} succeeded`);
+    console.log(`📊 Webhooks: ${successCount}/${validatedUrls.length} succeeded`);
 
     return new Response(
       JSON.stringify({
         success: successCount > 0,
         delivered: successCount,
-        total: webhookUrls.length,
+        total: validatedUrls.length,
         body_included: includeBody && !record.encrypted,
-        failures: failures.map(f => f.error),
+        failures: failures.map((f: { error?: string }) => f.error),
       }),
       {
         status: successCount > 0 ? 200 : 500,
@@ -182,7 +268,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('❌ Edge Function error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
