@@ -38,6 +38,9 @@ import { createWakeCommand } from '../commands/wake.js';
 import { createCloseCommand } from '../commands/close.js';
 import { createTagsCommand } from '../commands/tags.js';
 import { createCollabCommand } from '../commands/collab.js';
+import { createSignCommand, createSignKeygenCommand } from '../commands/sign.js';
+import { createVerifyCommand } from '../commands/verify.js';
+import { createCanaryInitCommand, createCanaryCheckCommand } from '../commands/canary.js';
 import { checkForUpdates } from '../lib/update-check.js';
 
 const program = new Command();
@@ -73,6 +76,13 @@ program.addCommand(createWakeCommand());
 program.addCommand(createCloseCommand());
 program.addCommand(createTagsCommand());
 program.addCommand(createCollabCommand());
+
+// Identity verification (signing)
+program.addCommand(createSignCommand());
+program.addCommand(createSignKeygenCommand());
+program.addCommand(createVerifyCommand());
+program.addCommand(createCanaryInitCommand());
+program.addCommand(createCanaryCheckCommand());
 
 // License management
 program.addCommand(createActivateCommand());

@@ -209,3 +209,125 @@ export function listOwnKeys(): string[] {
 export function decodePublicKey(base64: string): Uint8Array {
     return util.decodeBase64(base64);
 }
+
+// ============================================================
+// Signing Functions (Ed25519 for Identity Verification)
+// ============================================================
+
+export interface SigningKeyPair {
+    publicKey: Uint8Array;
+    secretKey: Uint8Array;
+}
+
+/**
+ * Generate a new Ed25519 signing keypair
+ */
+export function generateSigningKeyPair(): SigningKeyPair {
+    return nacl.sign.keyPair();
+}
+
+/**
+ * Save signing keypair to local storage
+ */
+export function saveSigningKeyPair(agentId: string, keyPair: SigningKeyPair): void {
+    ensureKeysDir();
+    const serialized = {
+        publicKey: util.encodeBase64(keyPair.publicKey),
+        secretKey: util.encodeBase64(keyPair.secretKey),
+    };
+    const path = join(KEYS_DIR, `${agentId}.sign.json`);
+    writeFileSync(path, JSON.stringify(serialized, null, 2), { mode: 0o600 });
+}
+
+/**
+ * Load signing keypair from local storage
+ */
+export function loadSigningKeyPair(agentId: string): SigningKeyPair | null {
+    const path = join(KEYS_DIR, `${agentId}.sign.json`);
+    if (!existsSync(path)) return null;
+
+    try {
+        const data = JSON.parse(readFileSync(path, 'utf-8'));
+        return {
+            publicKey: util.decodeBase64(data.publicKey),
+            secretKey: util.decodeBase64(data.secretKey),
+        };
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Check if signing keypair exists for an agent
+ */
+export function hasSigningKeyPair(agentId: string): boolean {
+    const path = join(KEYS_DIR, `${agentId}.sign.json`);
+    return existsSync(path);
+}
+
+/**
+ * Get signing public key as base64 string
+ */
+export function getSigningPublicKeyBase64(keyPair: SigningKeyPair): string {
+    return util.encodeBase64(keyPair.publicKey);
+}
+
+/**
+ * Sign a message with the agent's signing key
+ * Returns base64-encoded signature
+ */
+export function signMessage(message: string, secretKey: Uint8Array): string {
+    const messageBytes = util.decodeUTF8(message);
+    const signature = nacl.sign.detached(messageBytes, secretKey);
+    return util.encodeBase64(signature);
+}
+
+/**
+ * Verify a message signature
+ * Returns true if the signature is valid
+ */
+export function verifySignature(
+    message: string,
+    signatureBase64: string,
+    publicKeyBase64: string
+): boolean {
+    try {
+        const messageBytes = util.decodeUTF8(message);
+        const signature = util.decodeBase64(signatureBase64);
+        const publicKey = util.decodeBase64(publicKeyBase64);
+        return nacl.sign.detached.verify(messageBytes, signature, publicKey);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Known signing keys registry - maps agent IDs to their signing public keys
+ */
+export function loadKnownSigningKeys(): Record<string, string> {
+    const path = join(KEYS_DIR, 'known_signing_keys.json');
+    if (!existsSync(path)) return {};
+    try {
+        return JSON.parse(readFileSync(path, 'utf-8'));
+    } catch {
+        return {};
+    }
+}
+
+/**
+ * Save a known signing key for an agent
+ */
+export function saveKnownSigningKey(agentId: string, publicKeyBase64: string): void {
+    ensureKeysDir();
+    const keys = loadKnownSigningKeys();
+    keys[agentId.toLowerCase()] = publicKeyBase64;
+    writeFileSync(join(KEYS_DIR, 'known_signing_keys.json'), JSON.stringify(keys, null, 2));
+}
+
+/**
+ * Get known signing key for an agent
+ */
+export function getKnownSigningKey(agentId: string): string | null {
+    const keys = loadKnownSigningKeys();
+    return keys[agentId.toLowerCase()] || null;
+}

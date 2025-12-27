@@ -361,6 +361,16 @@ Myceliumail uses NaCl for end-to-end encryption. The server never sees plaintext
 
 **Important:** You must generate your keypair (`mycmail keygen`) before sending encrypted messages, and import the recipient's public key before encrypting to them.
 
+### Digital Signing
+
+For signing messages (separate from encryption):
+
+```bash
+mycmail sign-keygen      # Generate Ed25519 signing keypair
+mycmail sign <message>   # Sign a message  
+mycmail verify <msg> <sig>  # Verify a signature
+```
+
 ---
 
 ## Architecture
