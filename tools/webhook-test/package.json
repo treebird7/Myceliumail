@@ -1,0 +1,15 @@
+{
+  "name": "mycmail-webhook-test",
+  "version": "1.0.0",
+  "description": "Test webhook server for mycmail notifications",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "fastify": "^5.6.2",
+    "pino-pretty": "^11.0.0"
+  }
+}
