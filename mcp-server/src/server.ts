@@ -686,6 +686,308 @@ ${keyInfo}`
     }
 );
 
+// Tool: canary_init
+server.tool(
+    'canary_init',
+    'Initialize a canary token (secret phrase) for lightweight identity verification',
+    {
+        phrase: z.string().optional().describe('Custom phrase (auto-generated if not provided)'),
+        force: z.boolean().optional().describe('Overwrite existing canary token'),
+    },
+    async ({ phrase, force }) => {
+        const { existsSync, mkdirSync, writeFileSync } = await import('fs');
+        const { join } = await import('path');
+        const { homedir } = await import('os');
+        const nodeCrypto = await import('crypto');
+
+        const MYCELIUM_DIR = join(homedir(), '.myceliumail');
+        const CANARY_FILE = join(MYCELIUM_DIR, 'canary.txt');
+
+        // Ensure directory exists
+        if (!existsSync(MYCELIUM_DIR)) {
+            mkdirSync(MYCELIUM_DIR, { recursive: true });
+        }
+
+        // Check for existing canary
+        if (existsSync(CANARY_FILE) && !force) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '⚠️ Canary token already exists!\n\nUse force=true to regenerate.\n\n💡 To view your canary, run: cat ~/.myceliumail/canary.txt'
+                }],
+            };
+        }
+
+        // Generate or use provided phrase
+        let canaryPhrase = phrase;
+        if (!canaryPhrase) {
+            const animals = ['fox', 'owl', 'wolf', 'bear', 'hawk', 'deer', 'crow', 'hare', 'lynx', 'seal'];
+            const colors = ['red', 'blue', 'gold', 'jade', 'opal', 'rust', 'sage', 'rose', 'gray', 'onyx'];
+            const actions = ['runs', 'leaps', 'soars', 'hunts', 'waits', 'hides', 'sings', 'rests', 'roams', 'flies'];
+            const pick = (arr: string[]) => arr[nodeCrypto.randomInt(arr.length)];
+            const num = nodeCrypto.randomInt(10, 100);
+            canaryPhrase = `${pick(colors)}-${pick(animals)}-${pick(actions)}-${num}`;
+        }
+
+        // Save canary file
+        writeFileSync(CANARY_FILE, canaryPhrase + '\n', { mode: 0o600 });
+
+        return {
+            content: [{
+                type: 'text',
+                text: `🐤 Canary token initialized!
+
+Your secret canary phrase is:
+
+  🔐 ${canaryPhrase}
+
+This phrase proves you are the real owner of this environment.
+Keep it secret! Only share when an agent asks for verification.
+
+💡 If an agent asks "what's your canary phrase?", answer with this phrase.`
+            }],
+        };
+    }
+);
+
+// Tool: canary_check
+server.tool(
+    'canary_check',
+    'Verify if a canary phrase matches (for identity verification)',
+    {
+        phrase: z.string().describe('The phrase to check'),
+    },
+    async ({ phrase }) => {
+        const { existsSync, readFileSync } = await import('fs');
+        const { join } = await import('path');
+        const { homedir } = await import('os');
+
+        const CANARY_FILE = join(homedir(), '.myceliumail', 'canary.txt');
+
+        if (!existsSync(CANARY_FILE)) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '❌ No canary token found.\n\nThe user should run canary_init first.'
+                }],
+            };
+        }
+
+        const storedPhrase = readFileSync(CANARY_FILE, 'utf-8').trim();
+        const matches = phrase.trim() === storedPhrase;
+
+        if (matches) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '✅ Canary phrase MATCHES!\n\nIdentity verified - this is the real owner.'
+                }],
+            };
+        } else {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '❌ Canary phrase does NOT match.\n\n⚠️ This may not be the real owner. Proceed with caution.'
+                }],
+            };
+        }
+    }
+);
+
+// Tool: connection_status
+server.tool(
+    'connection_status',
+    'Check Myceliumail connection and configuration status',
+    {},
+    async () => {
+        const agentId = getAgentId();
+        const hasEncKeys = crypto.hasKeyPair(agentId);
+        const hasSignKeys = crypto.hasSigningKeyPair(agentId);
+        const knownPeers = Object.keys(crypto.loadKnownKeys()).length;
+
+        // Try to fetch from storage to check connection
+        let storageStatus = '❓ Unknown';
+        try {
+            await storage.getInbox(agentId, { limit: 1 });
+            storageStatus = '✅ Connected';
+        } catch (e) {
+            storageStatus = `❌ Error: ${e}`;
+        }
+
+        return {
+            content: [{
+                type: 'text',
+                text: `📊 Myceliumail Status
+
+🆔 Agent ID: ${agentId}
+💾 Storage: ${storageStatus}
+🔑 Encryption Keys: ${hasEncKeys ? '✅ Yes' : '❌ No'}
+✍️ Signing Keys: ${hasSignKeys ? '✅ Yes' : '❌ No'}
+👥 Known Peers: ${knownPeers}
+
+${agentId === 'anonymous' ? '⚠️ Set MYCELIUMAIL_AGENT_ID to configure your identity.' : ''}`
+            }],
+        };
+    }
+);
+
+// Tool: unread_count
+server.tool(
+    'unread_count',
+    'Get the count of unread messages in inbox',
+    {},
+    async () => {
+        const agentId = getAgentId();
+        const messages = await storage.getInbox(agentId, { unreadOnly: true, limit: 100 });
+
+        return {
+            content: [{
+                type: 'text',
+                text: messages.length === 0
+                    ? '📭 0 unread messages'
+                    : `📬 ${messages.length} unread message(s)`
+            }],
+        };
+    }
+);
+
+// Tool: search_messages
+server.tool(
+    'search_messages',
+    'Search messages by sender, subject, or content',
+    {
+        query: z.string().describe('Search term to find in sender, subject, or body'),
+        limit: z.number().optional().describe('Maximum results (default 10)'),
+    },
+    async ({ query, limit }) => {
+        const agentId = getAgentId();
+        const allMessages = await storage.getInbox(agentId, { limit: 100 });
+
+        const searchLower = query.toLowerCase();
+        const matches = allMessages.filter(msg =>
+            msg.sender.toLowerCase().includes(searchLower) ||
+            (msg.subject && msg.subject.toLowerCase().includes(searchLower)) ||
+            (msg.body && msg.body.toLowerCase().includes(searchLower))
+        ).slice(0, limit || 10);
+
+        if (matches.length === 0) {
+            return {
+                content: [{ type: 'text', text: `🔍 No messages found matching "${query}"` }],
+            };
+        }
+
+        const formatted = matches.map(msg => {
+            const status = msg.read ? '  ' : '● ';
+            const encrypted = msg.encrypted ? '🔐 ' : '';
+            return `${status}${encrypted}[${msg.id.slice(0, 8)}] From: ${msg.sender} | ${msg.subject || '(no subject)'}`;
+        }).join('\n');
+
+        return {
+            content: [{
+                type: 'text',
+                text: `🔍 Found ${matches.length} message(s) matching "${query}":\n\n${formatted}`
+            }],
+        };
+    }
+);
+
+// ============================================
+// MCP Resources - Expose inbox as context
+// ============================================
+
+server.resource(
+    'inbox',
+    'myceliumail://inbox',
+    async () => {
+        const agentId = getAgentId();
+        const messages = await storage.getInbox(agentId, { limit: 20 });
+
+        const formatted = messages.map(msg => {
+            const status = msg.read ? '[READ]' : '[UNREAD]';
+            const encrypted = msg.encrypted ? '[ENCRYPTED]' : '';
+            return `${status}${encrypted} ID:${msg.id.slice(0, 8)} | From:${msg.sender} | Subject:${msg.subject || '(no subject)'} | Date:${msg.createdAt.toISOString()}`;
+        }).join('\n');
+
+        return {
+            contents: [{
+                uri: 'myceliumail://inbox',
+                text: `Myceliumail Inbox for ${agentId}\n${'='.repeat(40)}\n\n${formatted || 'No messages'}\n\nTotal: ${messages.length} messages`,
+                mimeType: 'text/plain',
+            }],
+        };
+    }
+);
+
+server.resource(
+    'unread',
+    'myceliumail://unread',
+    async () => {
+        const agentId = getAgentId();
+        const messages = await storage.getInbox(agentId, { unreadOnly: true, limit: 50 });
+
+        const formatted = messages.map(msg => {
+            const encrypted = msg.encrypted ? '[ENCRYPTED]' : '';
+            const preview = msg.body ? msg.body.substring(0, 100) + (msg.body.length > 100 ? '...' : '') : '';
+            return `● ${encrypted} ID:${msg.id.slice(0, 8)}
+  From: ${msg.sender}
+  Subject: ${msg.subject || '(no subject)'}
+  Preview: ${preview}
+  Date: ${msg.createdAt.toISOString()}`;
+        }).join('\n\n');
+
+        return {
+            contents: [{
+                uri: 'myceliumail://unread',
+                text: `Unread Messages for ${agentId}\n${'='.repeat(40)}\n\n${formatted || 'No unread messages'}\n\nTotal unread: ${messages.length}`,
+                mimeType: 'text/plain',
+            }],
+        };
+    }
+);
+
+server.resource(
+    'keys',
+    'myceliumail://keys',
+    async () => {
+        const agentId = getAgentId();
+        const ownKeys = crypto.listOwnKeys();
+        const knownKeys = crypto.loadKnownKeys();
+
+        let output = `Encryption Keys for ${agentId}\n${'='.repeat(40)}\n\n`;
+        output += '── Your Keys ──\n';
+
+        if (ownKeys.length === 0) {
+            output += 'No keypairs. Use generate_keys to create one.\n';
+        } else {
+            for (const id of ownKeys) {
+                const kp = crypto.loadKeyPair(id);
+                if (kp) {
+                    const marker = id === agentId ? ' (active)' : '';
+                    output += `${id}${marker}: ${crypto.getPublicKeyBase64(kp).slice(0, 30)}...\n`;
+                }
+            }
+        }
+
+        output += '\n── Known Peer Keys ──\n';
+        const peers = Object.entries(knownKeys);
+        if (peers.length === 0) {
+            output += 'No peer keys. Use import_key to add one.\n';
+        } else {
+            for (const [id, key] of peers) {
+                output += `${id}: ${key.slice(0, 30)}...\n`;
+            }
+        }
+
+        return {
+            contents: [{
+                uri: 'myceliumail://keys',
+                text: output,
+                mimeType: 'text/plain',
+            }],
+        };
+    }
+);
+
 // Start the server
 async function main() {
     // Verify Pro license before starting

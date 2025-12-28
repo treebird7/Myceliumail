@@ -2,6 +2,25 @@
 
 All notable changes to the MCP server will be documented in this file.
 
+## [1.1.0] - 2025-12-28 🎉 Major Feature Release
+
+### Added
+- **Canary Tools** - Lightweight identity verification
+  - `canary_init` - Initialize secret canary phrase
+  - `canary_check` - Verify canary phrase matches
+- **Utility Tools**
+  - `connection_status` - Check Myceliumail connection and config
+  - `unread_count` - Quick unread message count
+  - `search_messages` - Search by sender, subject, or content
+- **MCP Resources** - Expose data as context
+  - `myceliumail://inbox` - Full inbox listing
+  - `myceliumail://unread` - Unread messages with previews
+  - `myceliumail://keys` - Encryption keys summary
+
+### Changed
+- Total MCP tools: 19 (was 14)
+- Total MCP resources: 3 (new)
+
 ## [1.0.15] - 2025-12-28
 
 ### Added

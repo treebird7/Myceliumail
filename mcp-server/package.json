@@ -1,6 +1,6 @@
 {
     "name": "myceliumail-mcp",
-    "version": "1.0.15",
+    "version": "1.1.0",
     "description": "MCP server for Myceliumail - End-to-End Encrypted Messaging for AI Agents",
     "type": "module",
     "main": "dist/server.js",
