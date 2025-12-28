@@ -988,6 +988,438 @@ server.resource(
     }
 );
 
+// ============================================
+// Collaboration Tools
+// ============================================
+
+// Tool: collab_join
+server.tool(
+    'collab_join',
+    'Join a collaboration document by adding your agent section',
+    {
+        filepath: z.string().describe('Path to the collaboration markdown file'),
+        message: z.string().optional().describe('Custom message to add (uses default if not provided)'),
+    },
+    async ({ filepath, message }) => {
+        const { existsSync, readFileSync, writeFileSync } = await import('fs');
+        const { basename } = await import('path');
+
+        const agentId = getAgentId();
+        const agentName = 'Myceliumail';
+
+        if (!existsSync(filepath)) {
+            return {
+                content: [{ type: 'text', text: `❌ Collab file not found: ${filepath}` }],
+            };
+        }
+
+        let content = readFileSync(filepath, 'utf-8');
+
+        const now = new Date();
+        const timestamp = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const date = now.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+
+        const defaultMessage = `${agentName} joining the discussion!
+
+As the communication backbone, here's my perspective:
+
+**Key points:**
+- Ready to facilitate message exchange between agents
+- Can provide encryption/decryption support for sensitive discussions
+- Monitoring network health for all participants
+
+Looking forward to contributing!`;
+
+        const msgToAdd = message || defaultMessage;
+
+        // Find the placeholder section and add our response before it
+        const placeholder = '### [Agent responses will appear here]';
+        const agentSection = `### ${agentName} (${agentId}) - ${date} ${timestamp}
+${msgToAdd}
+
+---
+
+${placeholder}`;
+
+        if (content.includes(placeholder)) {
+            content = content.replace(placeholder, agentSection);
+        } else {
+            // Append at the end if no placeholder found
+            content += `\n\n---\n\n### ${agentName} (${agentId}) - ${date} ${timestamp}\n${msgToAdd}\n`;
+        }
+
+        // Update the participant checkbox if present
+        const patterns = [
+            new RegExp(`- \\[ \\] \\*\\*${agentName}\\*\\* - Awaiting response`),
+            new RegExp(`- \\[ \\] \\*\\*${agentId}\\*\\* - Awaiting response`),
+            new RegExp(`- \\[ \\] \\*\\*mycm\\*\\* - Awaiting response`),
+        ];
+
+        for (const pattern of patterns) {
+            content = content.replace(pattern, `- [x] **${agentName}** - Joined`);
+        }
+
+        writeFileSync(filepath, content);
+
+        // Notify birdsan
+        try {
+            await storage.sendMessage(agentId, 'bsan', 'Joined collab', `${agentName} has joined: ${basename(filepath)}`);
+        } catch {
+            // Ignore notification errors
+        }
+
+        return {
+            content: [{
+                type: 'text',
+                text: `🤝 Joined Collaboration!
+
+📄 File: ${basename(filepath)}
+👤 Agent: ${agentName} (${agentId})
+📝 Added response to document
+✉️ Notified birdsan`
+            }],
+        };
+    }
+);
+
+// Tool: collab_read
+server.tool(
+    'collab_read',
+    'Read a collaboration document',
+    {
+        filepath: z.string().describe('Path to the collab markdown file'),
+    },
+    async ({ filepath }) => {
+        const { existsSync, readFileSync } = await import('fs');
+        const { basename } = await import('path');
+
+        if (!existsSync(filepath)) {
+            return {
+                content: [{ type: 'text', text: `❌ Collab file not found: ${filepath}` }],
+            };
+        }
+
+        const content = readFileSync(filepath, 'utf-8');
+
+        // Truncate if too long
+        const maxLength = 8000;
+        const truncated = content.length > maxLength
+            ? content.substring(0, maxLength) + '\n\n... [truncated, file is ' + content.length + ' characters]'
+            : content;
+
+        return {
+            content: [{
+                type: 'text',
+                text: `📄 Collab: ${basename(filepath)}\n${'='.repeat(40)}\n\n${truncated}`
+            }],
+        };
+    }
+);
+
+// Tool: collab_add_comment
+server.tool(
+    'collab_add_comment',
+    'Add a timestamped comment to a collaboration document',
+    {
+        filepath: z.string().describe('Path to the collab markdown file'),
+        comment: z.string().describe('Comment to add'),
+    },
+    async ({ filepath, comment }) => {
+        const { existsSync, readFileSync, writeFileSync } = await import('fs');
+        const { basename } = await import('path');
+
+        const agentId = getAgentId();
+
+        if (!existsSync(filepath)) {
+            return {
+                content: [{ type: 'text', text: `❌ Collab file not found: ${filepath}` }],
+            };
+        }
+
+        let content = readFileSync(filepath, 'utf-8');
+
+        const now = new Date();
+        const timestamp = now.toISOString();
+
+        // Add as HTML comment for non-intrusive logging
+        const htmlComment = `<!-- [${agentId}] ${timestamp} -->\n<!-- ${comment.replace(/--/g, '—')} -->\n`;
+
+        // Append at the end
+        content += `\n${htmlComment}`;
+
+        writeFileSync(filepath, content);
+
+        return {
+            content: [{
+                type: 'text',
+                text: `💬 Comment added to ${basename(filepath)}\n\n📝 "${comment.substring(0, 100)}${comment.length > 100 ? '...' : ''}"`
+            }],
+        };
+    }
+);
+
+// ============================================
+// Utility Tools
+// ============================================
+
+// Tool: list_agents
+server.tool(
+    'list_agents',
+    'List all known agents from the key registry',
+    {},
+    async () => {
+        const agentId = getAgentId();
+        const knownKeys = crypto.loadKnownKeys();
+        const knownSigningKeys = crypto.loadKnownSigningKeys();
+
+        const allAgents = new Set([
+            ...Object.keys(knownKeys),
+            ...Object.keys(knownSigningKeys),
+        ]);
+
+        if (allAgents.size === 0) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '👥 No known agents yet.\n\nUse import_key to add agent public keys.'
+                }],
+            };
+        }
+
+        const agentList = Array.from(allAgents).map(id => {
+            const hasEncKey = !!knownKeys[id];
+            const hasSignKey = !!knownSigningKeys[id];
+            const markers = [];
+            if (hasEncKey) markers.push('🔐 enc');
+            if (hasSignKey) markers.push('✍️ sign');
+            return `• ${id} [${markers.join(', ')}]`;
+        }).join('\n');
+
+        return {
+            content: [{
+                type: 'text',
+                text: `👥 Known Agents (${allAgents.size})\n${'─'.repeat(30)}\n\n${agentList}\n\n💡 Your ID: ${agentId}`
+            }],
+        };
+    }
+);
+
+// Tool: thread_view
+server.tool(
+    'thread_view',
+    'View conversation thread with a specific agent',
+    {
+        agent_id: z.string().describe('Agent ID to view thread with'),
+        limit: z.number().optional().describe('Maximum messages to show (default 20)'),
+    },
+    async ({ agent_id, limit }) => {
+        const myId = getAgentId();
+        const allMessages = await storage.getInbox(myId, { limit: 100 });
+
+        // Filter for messages to/from this agent
+        const thread = allMessages.filter(msg =>
+            msg.sender === agent_id || msg.recipient === agent_id
+        ).slice(0, limit || 20);
+
+        if (thread.length === 0) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: `📭 No messages found with ${agent_id}`
+                }],
+            };
+        }
+
+        const formatted = thread.map(msg => {
+            const direction = msg.sender === myId ? '→ TO' : '← FROM';
+            const encrypted = msg.encrypted ? '🔐' : '';
+            const preview = msg.body ? msg.body.substring(0, 80) + (msg.body.length > 80 ? '...' : '') : '';
+            return `${direction} ${msg.sender === myId ? msg.recipient : msg.sender} ${encrypted}
+   📅 ${msg.createdAt.toLocaleString()}
+   📌 ${msg.subject || '(no subject)'}
+   ${preview}`;
+        }).join('\n\n');
+
+        return {
+            content: [{
+                type: 'text',
+                text: `💬 Thread with ${agent_id} (${thread.length} messages)\n${'═'.repeat(40)}\n\n${formatted}`
+            }],
+        };
+    }
+);
+
+// Tool: mark_all_read
+server.tool(
+    'mark_all_read',
+    'Mark all unread messages as read',
+    {},
+    async () => {
+        const agentId = getAgentId();
+        const unread = await storage.getInbox(agentId, { unreadOnly: true, limit: 100 });
+
+        if (unread.length === 0) {
+            return {
+                content: [{ type: 'text', text: '✅ No unread messages to mark.' }],
+            };
+        }
+
+        let markedCount = 0;
+        for (const msg of unread) {
+            try {
+                await storage.markAsRead(msg.id);
+                markedCount++;
+            } catch {
+                // Continue on error
+            }
+        }
+
+        return {
+            content: [{
+                type: 'text',
+                text: `✅ Marked ${markedCount} message(s) as read.`
+            }],
+        };
+    }
+);
+
+// ============================================
+// MCP Prompts - Common Workflows
+// ============================================
+
+server.prompt(
+    'compose-secure-message',
+    'Guide for composing an encrypted message',
+    async () => {
+        const agentId = getAgentId();
+        const knownKeys = crypto.loadKnownKeys();
+        const peers = Object.keys(knownKeys);
+
+        let peerList = peers.length > 0
+            ? `Available recipients with encryption keys:\n${peers.map(p => `• ${p}`).join('\n')}`
+            : 'No peers with imported keys yet. Use import_key first.';
+
+        return {
+            messages: [{
+                role: 'user',
+                content: {
+                    type: 'text',
+                    text: `I want to send a secure, encrypted message.
+
+My agent ID: ${agentId}
+${peerList}
+
+Please help me compose an encrypted message. Ask me:
+1. Who is the recipient?
+2. What is the subject?
+3. What is the message content?
+
+Then use the send_message tool with encrypt=true.`
+                }
+            }],
+        };
+    }
+);
+
+server.prompt(
+    'check-urgent',
+    'Check for urgent or unread messages that need attention',
+    async () => {
+        const agentId = getAgentId();
+        const unread = await storage.getInbox(agentId, { unreadOnly: true, limit: 10 });
+
+        let summary = '';
+        if (unread.length === 0) {
+            summary = 'No unread messages. Inbox is clear! ✅';
+        } else {
+            const list = unread.map(m =>
+                `• From ${m.sender}: "${m.subject || '(no subject)'}" - ${m.createdAt.toLocaleString()}`
+            ).join('\n');
+            summary = `You have ${unread.length} unread message(s):\n\n${list}\n\nWould you like me to read any of these messages?`;
+        }
+
+        return {
+            messages: [{
+                role: 'user',
+                content: {
+                    type: 'text',
+                    text: `Check my Myceliumail inbox for urgent or unread messages.\n\n${summary}`
+                }
+            }],
+        };
+    }
+);
+
+server.prompt(
+    'identity-check',
+    'Verify your identity setup and key status',
+    async () => {
+        const agentId = getAgentId();
+        const hasEncKeys = crypto.hasKeyPair(agentId);
+        const hasSignKeys = crypto.hasSigningKeyPair(agentId);
+        const knownPeers = Object.keys(crypto.loadKnownKeys()).length;
+
+        const { existsSync } = await import('fs');
+        const { join } = await import('path');
+        const { homedir } = await import('os');
+        const hasCanary = existsSync(join(homedir(), '.myceliumail', 'canary.txt'));
+
+        const status = `Identity Status for ${agentId}:
+
+🔐 Encryption keypair: ${hasEncKeys ? '✅ Yes' : '❌ No - run generate_keys'}
+✍️ Signing keypair: ${hasSignKeys ? '✅ Yes' : '❌ No - run generate_signing_keys'}
+🐤 Canary token: ${hasCanary ? '✅ Yes' : '❌ No - run canary_init'}
+👥 Known peers: ${knownPeers}
+
+${!hasEncKeys || !hasSignKeys || !hasCanary ? 'Some identity features are not set up. Would you like me to help configure them?' : 'All identity features are configured! ✅'}`;
+
+        return {
+            messages: [{
+                role: 'user',
+                content: {
+                    type: 'text',
+                    text: status
+                }
+            }],
+        };
+    }
+);
+
+server.prompt(
+    'fleet-status',
+    'Check the status of the agent fleet',
+    async () => {
+        const agentId = getAgentId();
+        const knownKeys = crypto.loadKnownKeys();
+        const peers = Object.keys(knownKeys);
+
+        const fleetInfo = peers.length > 0
+            ? `Known fleet members (${peers.length}):\n${peers.map(p => `• ${p}`).join('\n')}`
+            : 'No known fleet members yet. Import some keys!';
+
+        return {
+            messages: [{
+                role: 'user',
+                content: {
+                    type: 'text',
+                    text: `Fleet Status Report
+
+My agent ID: ${agentId}
+
+${fleetInfo}
+
+To communicate with the fleet:
+1. Use broadcast_message to send to all agents
+2. Use send_message for individual agents
+3. Use announce_key to share your public key
+
+What would you like to do?`
+                }
+            }],
+        };
+    }
+);
+
 // Start the server
 async function main() {
     // Verify Pro license before starting

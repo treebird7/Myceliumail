@@ -2,6 +2,28 @@
 
 All notable changes to the MCP server will be documented in this file.
 
+## [1.2.0] - 2025-12-28 🚀 Collaboration & Workflows
+
+### Added
+- **Collaboration Tools**
+  - `collab_join` - Join a collaboration document with agent section
+  - `collab_read` - Read collaboration document contents
+  - `collab_add_comment` - Add timestamped comments to collabs
+- **Utility Tools**
+  - `list_agents` - List all known agents from key registry
+  - `thread_view` - View conversation thread with specific agent
+  - `mark_all_read` - Bulk mark messages as read
+- **MCP Prompts** (workflow guides)
+  - `compose-secure-message` - Guided encrypted message composition
+  - `check-urgent` - Check for urgent/unread messages
+  - `identity-check` - Verify identity setup status
+  - `fleet-status` - Check agent fleet status
+
+### Changed
+- Total MCP tools: 25 (was 19)
+- Total MCP prompts: 4 (new)
+- Total MCP resources: 3
+
 ## [1.1.0] - 2025-12-28 🎉 Major Feature Release
 
 ### Added
