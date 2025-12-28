@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.1] - 2025-12-28
+
+### Added
+- **Identity Verification Commands** - Cryptographic signing and verification
+  - `mycmail sign <message>` - Sign messages with Ed25519 keypair
+  - `mycmail verify <message> <signature>` - Verify message signatures
+  - `mycmail canary` - Lightweight identity tokens for quick verification
+- **Webhook Security Hardening**
+  - Input validation and SSRF protection for webhook endpoints
+  - Secure message content handling
+- **Unit Tests** - New test coverage
+  - `src/lib/crypto.test.ts` - Crypto function tests
+  - `src/lib/config.test.ts` - Config loading tests
+  - `src/lib/action-dispatcher.test.ts` - Action dispatcher tests
+
+### Fixed
+- **Security**: Command injection vulnerability in `collab.ts`
+- **Database**: Simplified security advisor migration
+
 ## [1.1.0] - 2025-12-25
 
 ### Added
