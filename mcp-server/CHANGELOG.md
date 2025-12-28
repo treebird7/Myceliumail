@@ -2,6 +2,21 @@
 
 All notable changes to the MCP server will be documented in this file.
 
+## [1.0.15] - 2025-12-28
+
+### Added
+- **Identity Verification Tools**
+  - `sign_message` - Sign messages with Ed25519 signing key
+  - `verify_signature` - Verify signed messages from other agents
+  - `generate_signing_keys` - Generate Ed25519 signing keypair
+- **Fleet Communication**
+  - `broadcast_message` - Send to all known agents
+  - `announce_key` - Announce public keys to all known agents
+- **Crypto Module** - Ed25519 signing support added
+
+### Changed
+- Total MCP tools increased from 10 to 15
+
 ## [1.0.11] - 2025-12-21
 
 ### Fixed

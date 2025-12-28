@@ -417,6 +417,275 @@ server.tool(
     }
 );
 
+// Tool: sign_message
+server.tool(
+    'sign_message',
+    'Sign a message with your Ed25519 signing key (for identity verification)',
+    {
+        message: z.string().describe('Message to sign'),
+    },
+    async ({ message }) => {
+        const agentId = getAgentId();
+
+        if (agentId === 'anonymous') {
+            return {
+                content: [{ type: 'text', text: '❌ Agent ID not configured. Set MYCELIUMAIL_AGENT_ID environment variable.' }],
+            };
+        }
+
+        const signingKeyPair = crypto.loadSigningKeyPair(agentId);
+        if (!signingKeyPair) {
+            return {
+                content: [{ type: 'text', text: '❌ No signing keypair found. Use generate_signing_keys first.' }],
+            };
+        }
+
+        const signature = crypto.signMessage(message, signingKeyPair);
+
+        return {
+            content: [{
+                type: 'text',
+                text: `✍️ Message signed by ${agentId}
+
+📝 Message: ${message.length > 100 ? message.substring(0, 100) + '...' : message}
+
+🔏 Signature:
+${signature}
+
+💡 Share both the message and signature for verification.`
+            }],
+        };
+    }
+);
+
+// Tool: verify_signature
+server.tool(
+    'verify_signature',
+    'Verify a signed message from another agent',
+    {
+        message: z.string().describe('The original message'),
+        signature: z.string().describe('Base64 signature to verify'),
+        agent_id: z.string().describe('Agent ID who signed the message'),
+    },
+    async ({ message, signature, agent_id }) => {
+        // First try known signing keys
+        let publicKey = crypto.getKnownSigningKey(agent_id);
+
+        // Fall back to encryption public key if no signing key
+        if (!publicKey) {
+            publicKey = crypto.getKnownKey(agent_id);
+        }
+
+        if (!publicKey) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: `❌ No public key found for ${agent_id}. Use import_key first or ask them to announce_key.`
+                }],
+            };
+        }
+
+        const isValid = crypto.verifySignature(message, signature, publicKey);
+
+        if (isValid) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: `✅ VERIFIED: This message was signed by ${agent_id}
+
+📝 Message: ${message.length > 100 ? message.substring(0, 100) + '...' : message}
+
+🔏 Signature is VALID.`
+                }],
+            };
+        } else {
+            return {
+                content: [{
+                    type: 'text',
+                    text: `❌ INVALID SIGNATURE
+
+⚠️ This message was NOT signed by ${agent_id} (or was tampered with).
+
+Do not trust unverified messages claiming to be from this agent.`
+                }],
+            };
+        }
+    }
+);
+
+// Tool: generate_signing_keys
+server.tool(
+    'generate_signing_keys',
+    'Generate Ed25519 signing keypair for identity verification (separate from encryption keys)',
+    {
+        force: z.boolean().optional().describe('Overwrite existing keypair'),
+    },
+    async ({ force }) => {
+        const agentId = getAgentId();
+
+        if (crypto.hasSigningKeyPair(agentId) && !force) {
+            const existing = crypto.loadSigningKeyPair(agentId);
+            if (existing) {
+                const pubKey = crypto.getSigningPublicKeyBase64(existing);
+                return {
+                    content: [{
+                        type: 'text',
+                        text: `⚠️ Signing keypair already exists for ${agentId}
+
+📧 Your signing public key:
+${pubKey}
+
+Use force=true to regenerate (will invalidate existing signatures!).`
+                    }],
+                };
+            }
+        }
+
+        const keyPair = crypto.generateSigningKeyPair();
+        crypto.saveSigningKeyPair(agentId, keyPair);
+        const publicKey = crypto.getSigningPublicKeyBase64(keyPair);
+
+        return {
+            content: [{
+                type: 'text',
+                text: `🔐 Signing keypair generated for ${agentId}
+
+📧 Your signing public key (share with other agents):
+${publicKey}
+
+Use sign_message to sign messages. Others can use verify_signature to verify.`
+            }],
+        };
+    }
+);
+
+// Tool: broadcast_message
+server.tool(
+    'broadcast_message',
+    'Send a message to all known agents (fleet-wide announcement)',
+    {
+        subject: z.string().describe('Message subject'),
+        body: z.string().describe('Message body'),
+    },
+    async ({ subject, body }) => {
+        const sender = getAgentId();
+
+        if (sender === 'anonymous') {
+            return {
+                content: [{ type: 'text', text: '❌ Agent ID not configured. Set MYCELIUMAIL_AGENT_ID environment variable.' }],
+            };
+        }
+
+        // Get all known agents from peer keys
+        const knownKeys = crypto.loadKnownKeys();
+        const recipients = Object.keys(knownKeys).filter(id => id !== sender);
+
+        if (recipients.length === 0) {
+            return {
+                content: [{ type: 'text', text: '❌ No known agents to broadcast to. Import some keys first.' }],
+            };
+        }
+
+        const results: string[] = [];
+        let successCount = 0;
+
+        for (const recipient of recipients) {
+            try {
+                await storage.sendMessage(sender, recipient, `[BROADCAST] ${subject}`, body);
+                results.push(`✅ ${recipient}`);
+                successCount++;
+            } catch (error) {
+                results.push(`❌ ${recipient}: ${error}`);
+            }
+        }
+
+        return {
+            content: [{
+                type: 'text',
+                text: `📢 Broadcast sent to ${successCount}/${recipients.length} agents
+
+${results.join('\n')}`
+            }],
+        };
+    }
+);
+
+// Tool: announce_key
+server.tool(
+    'announce_key',
+    'Announce your public key to all known agents (for key exchange)',
+    {},
+    async () => {
+        const agentId = getAgentId();
+
+        if (agentId === 'anonymous') {
+            return {
+                content: [{ type: 'text', text: '❌ Agent ID not configured. Set MYCELIUMAIL_AGENT_ID environment variable.' }],
+            };
+        }
+
+        // Get encryption key
+        const encKeyPair = crypto.loadKeyPair(agentId);
+        if (!encKeyPair) {
+            return {
+                content: [{ type: 'text', text: '❌ No encryption keypair found. Use generate_keys first.' }],
+            };
+        }
+
+        const encPubKey = crypto.getPublicKeyBase64(encKeyPair);
+
+        // Get signing key if available
+        const signKeyPair = crypto.loadSigningKeyPair(agentId);
+        const signPubKey = signKeyPair ? crypto.getSigningPublicKeyBase64(signKeyPair) : null;
+
+        // Build announcement
+        let keyInfo = `🔑 ENCRYPTION KEY:\n${encPubKey}`;
+        if (signPubKey) {
+            keyInfo += `\n\n✍️ SIGNING KEY:\n${signPubKey}`;
+        }
+
+        const body = `${agentId} is announcing their public keys.
+
+${keyInfo}
+
+To import: Use import_key with agent_id="${agentId}" and the key above.`;
+
+        // Get all known agents
+        const knownKeys = crypto.loadKnownKeys();
+        const recipients = Object.keys(knownKeys).filter(id => id !== agentId);
+
+        if (recipients.length === 0) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: `📧 No known agents to announce to. Here's your public key to share manually:
+
+${keyInfo}`
+                }],
+            };
+        }
+
+        let successCount = 0;
+        for (const recipient of recipients) {
+            try {
+                await storage.sendMessage(agentId, recipient, `🔑 KEY ANNOUNCEMENT from ${agentId}`, body);
+                successCount++;
+            } catch {
+                // Continue on failure
+            }
+        }
+
+        return {
+            content: [{
+                type: 'text',
+                text: `📢 Key announced to ${successCount}/${recipients.length} agents
+
+${keyInfo}`
+            }],
+        };
+    }
+);
+
 // Start the server
 async function main() {
     // Verify Pro license before starting

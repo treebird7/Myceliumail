@@ -148,3 +148,88 @@ export function listOwnKeys(): string[] {
 export function decodePublicKey(base64: string): Uint8Array {
     return util.decodeBase64(base64);
 }
+
+// ============================================
+// Ed25519 Signing (separate from encryption)
+// ============================================
+
+export interface SigningKeyPair {
+    publicKey: Uint8Array;
+    secretKey: Uint8Array;
+}
+
+export function generateSigningKeyPair(): SigningKeyPair {
+    return nacl.sign.keyPair();
+}
+
+export function saveSigningKeyPair(agentId: string, keyPair: SigningKeyPair): void {
+    ensureKeysDir();
+    const serialized = {
+        publicKey: util.encodeBase64(keyPair.publicKey),
+        secretKey: util.encodeBase64(keyPair.secretKey),
+    };
+    const path = join(KEYS_DIR, `${agentId}.sign.json`);
+    writeFileSync(path, JSON.stringify(serialized, null, 2), { mode: 0o600 });
+}
+
+export function loadSigningKeyPair(agentId: string): SigningKeyPair | null {
+    const path = join(KEYS_DIR, `${agentId}.sign.json`);
+    if (!existsSync(path)) return null;
+
+    try {
+        const data = JSON.parse(readFileSync(path, 'utf-8'));
+        return {
+            publicKey: util.decodeBase64(data.publicKey),
+            secretKey: util.decodeBase64(data.secretKey),
+        };
+    } catch {
+        return null;
+    }
+}
+
+export function hasSigningKeyPair(agentId: string): boolean {
+    return existsSync(join(KEYS_DIR, `${agentId}.sign.json`));
+}
+
+export function getSigningPublicKeyBase64(keyPair: SigningKeyPair): string {
+    return util.encodeBase64(keyPair.publicKey);
+}
+
+export function signMessage(message: string, keyPair: SigningKeyPair): string {
+    const messageBytes = util.decodeUTF8(message);
+    const signature = nacl.sign.detached(messageBytes, keyPair.secretKey);
+    return util.encodeBase64(signature);
+}
+
+export function verifySignature(message: string, signatureBase64: string, publicKeyBase64: string): boolean {
+    try {
+        const messageBytes = util.decodeUTF8(message);
+        const signature = util.decodeBase64(signatureBase64);
+        const publicKey = util.decodeBase64(publicKeyBase64);
+        return nacl.sign.detached.verify(messageBytes, signature, publicKey);
+    } catch {
+        return false;
+    }
+}
+
+export function loadKnownSigningKeys(): Record<string, string> {
+    const path = join(KEYS_DIR, 'known_signing_keys.json');
+    if (!existsSync(path)) return {};
+    try {
+        return JSON.parse(readFileSync(path, 'utf-8'));
+    } catch {
+        return {};
+    }
+}
+
+export function saveKnownSigningKey(agentId: string, publicKeyBase64: string): void {
+    ensureKeysDir();
+    const keys = loadKnownSigningKeys();
+    keys[agentId] = publicKeyBase64;
+    writeFileSync(join(KEYS_DIR, 'known_signing_keys.json'), JSON.stringify(keys, null, 2));
+}
+
+export function getKnownSigningKey(agentId: string): string | null {
+    const keys = loadKnownSigningKeys();
+    return keys[agentId] || null;
+}
