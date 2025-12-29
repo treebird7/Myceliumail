@@ -395,6 +395,58 @@ server.tool(
     }
 );
 
+// Tool: get_full_key
+server.tool(
+    'get_full_key',
+    'Get the full (untruncated) public key for an agent from the registry',
+    {
+        agent_id: z.string().describe('Agent ID to get key for'),
+    },
+    async ({ agent_id }) => {
+        // Query Supabase for full key
+        const key = await storage.getAgentKey(agent_id);
+
+        if (!key) {
+            // Try local keys as fallback
+            const localKey = crypto.getKnownKey(agent_id);
+            if (localKey) {
+                return {
+                    content: [{
+                        type: 'text',
+                        text: `🔑 Full public key for ${agent_id} (from local):
+
+${localKey}
+
+Algorithm: x25519
+
+💡 Key found in local storage.`
+                    }],
+                };
+            }
+
+            return {
+                content: [{
+                    type: 'text',
+                    text: `❌ No public key found for ${agent_id} in registry or local storage`
+                }],
+            };
+        }
+
+        return {
+            content: [{
+                type: 'text',
+                text: `🔑 Full public key for ${agent_id}:
+
+${key.public_key}
+
+Algorithm: ${key.algorithm || 'x25519'}
+
+💡 To import: Use import_key with this full key.`
+            }],
+        };
+    }
+);
+
 // Tool: archive_message
 server.tool(
     'archive_message',

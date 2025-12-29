@@ -2,6 +2,25 @@
 
 All notable changes to the MCP server will be documented in this file.
 
+## [1.2.1] - 2025-12-29 🔐 Key Management Fix
+
+### Added
+- **`get_full_key` tool** - Retrieve untruncated public keys from registry
+  - Solves Watson's discovered UX gap where `list_keys` truncates keys
+  - Queries Supabase registry or falls back to local storage
+- **Session key initialization** - Keys now auto-load from `~/.myceliumail/keys/`
+  - Fixes encryption failures to known agents (e.g., srlk)
+  - Audit logging per Sherlocksan's security requirements
+- **`getAgentKey()` API** - Query Supabase for full agent public keys
+
+### Fixed
+- **Encryption bootstrap issue** - Agents can now encrypt to any peer with imported keys
+- Root cause: MCP session didn't sync with local filesystem key storage
+
+### Security
+- Read-only key loading (no writes from MCP)
+- Audit trail for key operations logged to stderr
+
 ## [1.2.0] - 2025-12-28 🚀 Collaboration & Workflows
 
 ### Added

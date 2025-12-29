@@ -121,16 +121,63 @@ export function loadKnownKeys(): Record<string, string> {
     }
 }
 
+// ============================================
+// Session Key Management (Phase 2 Fix)
+// ============================================
+
+// In-memory key store for session (loaded from local filesystem on init)
+let sessionKeyStore: Record<string, string> = {};
+let keysInitialized = false;
+
+/**
+ * Initialize session keys from local filesystem.
+ * Called on first key access or can be called explicitly on startup.
+ * Per srlk security requirements: read-only, with audit logging.
+ */
+export function initializeSessionKeys(): void {
+    if (keysInitialized) return;
+
+    // Load from local filesystem (read-only, per srlk security requirements)
+    const localKeys = loadKnownKeys();
+    const keyCount = Object.keys(localKeys).length;
+
+    sessionKeyStore = { ...localKeys };
+    keysInitialized = true;
+
+    // Audit logging (per srlk requirements)
+    if (keyCount > 0) {
+        console.error(`[AUDIT] MCP Init: Loaded ${keyCount} keys from ${KEYS_DIR}/known_keys.json`);
+        console.error(`[AUDIT] Keys loaded: ${Object.keys(localKeys).join(', ')}`);
+    } else {
+        console.error(`[AUDIT] MCP Init: No keys found in ${KEYS_DIR}/known_keys.json`);
+    }
+}
+
+/**
+ * Reset session keys (for testing or reinitialization)
+ */
+export function resetSessionKeys(): void {
+    sessionKeyStore = {};
+    keysInitialized = false;
+}
+
 export function saveKnownKey(agentId: string, publicKeyBase64: string): void {
     ensureKeysDir();
     const keys = loadKnownKeys();
     keys[agentId] = publicKeyBase64;
     writeFileSync(join(KEYS_DIR, 'known_keys.json'), JSON.stringify(keys, null, 2));
+
+    // Also update session store
+    sessionKeyStore[agentId] = publicKeyBase64;
+
+    // Audit log
+    console.error(`[AUDIT] Key imported: ${agentId}`);
 }
 
 export function getKnownKey(agentId: string): string | null {
-    const keys = loadKnownKeys();
-    return keys[agentId] || null;
+    // Ensure session keys are initialized
+    initializeSessionKeys();
+    return sessionKeyStore[agentId] || null;
 }
 
 export function listOwnKeys(): string[] {

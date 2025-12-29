@@ -312,3 +312,42 @@ export async function archiveMessage(id: string): Promise<boolean> {
     saveLocalMessages(messages);
     return true;
 }
+
+// Get full public key for an agent from Supabase registry
+export async function getAgentKey(agentId: string): Promise<{ agent_id: string; public_key: string; algorithm?: string } | null> {
+    if (!hasSupabase()) {
+        return null;
+    }
+
+    try {
+        const results = await supabaseRequest<Array<{
+            agent_id: string;
+            public_key: string;
+            algorithm?: string;
+        }>>(`/agent_keys?agent_id=eq.${agentId}`);
+
+        if (results.length === 0) return null;
+        return results[0];
+    } catch (err) {
+        console.error('getAgentKey failed:', err);
+        return null;
+    }
+}
+
+// Get all agent keys from Supabase registry
+export async function getAllAgentKeys(): Promise<Array<{ agent_id: string; public_key: string; algorithm?: string }>> {
+    if (!hasSupabase()) {
+        return [];
+    }
+
+    try {
+        return await supabaseRequest<Array<{
+            agent_id: string;
+            public_key: string;
+            algorithm?: string;
+        }>>('/agent_keys');
+    } catch (err) {
+        console.error('getAllAgentKeys failed:', err);
+        return [];
+    }
+}
