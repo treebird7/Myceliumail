@@ -294,7 +294,37 @@ export async function getMultiAgentInbox(agentIds: string[], options?: InboxOpti
 /**
  * Get a specific message (supports partial ID lookup)
  */
+
+// Cache for recent message lookups (reduces Supabase calls)
+const messageCache = new Map<string, { message: Message; expires: number }>();
+const MESSAGE_CACHE_TTL = 30000; // 30 seconds
+
+function getCachedMessage(id: string): Message | null {
+    const cached = messageCache.get(id);
+    if (cached && Date.now() < cached.expires) {
+        return cached.message;
+    }
+    messageCache.delete(id);
+    return null;
+}
+
+function cacheMessage(message: Message): void {
+    messageCache.set(message.id, {
+        message,
+        expires: Date.now() + MESSAGE_CACHE_TTL,
+    });
+    // Also cache by partial ID (first 8 chars)
+    messageCache.set(message.id.substring(0, 8), {
+        message,
+        expires: Date.now() + MESSAGE_CACHE_TTL,
+    });
+}
+
 export async function getMessage(id: string): Promise<Message | null> {
+    // Check cache first
+    const cached = getCachedMessage(id);
+    if (cached) return cached;
+
     const client = createClient();
 
     if (!client) {
@@ -302,7 +332,7 @@ export async function getMessage(id: string): Promise<Message | null> {
     }
 
     // For partial IDs, fetch recent messages and filter client-side
-    // (PostgreSQL UUID type doesn't support LIKE operator)
+    // OPTIMIZED: Reduced from 100 to 20 rows
     if (id.length < 36) {
         const results = await supabaseRequest<Array<{
             id: string;
@@ -313,7 +343,7 @@ export async function getMessage(id: string): Promise<Message | null> {
             encrypted: boolean;
             read: boolean;
             created_at: string;
-        }>>(client, `/agent_messages?order=created_at.desc&limit=100`);
+        }>>(client, `/agent_messages?order=created_at.desc&limit=20`);
 
         const r = results.find(row => row.id.startsWith(id));
         if (!r) return null;
@@ -330,7 +360,7 @@ export async function getMessage(id: string): Promise<Message | null> {
             } catch { }
         }
 
-        return {
+        const message: Message = {
             id: r.id,
             sender: r.from_agent,
             recipient: r.to_agent,
@@ -344,6 +374,10 @@ export async function getMessage(id: string): Promise<Message | null> {
             archived: false,
             createdAt: new Date(r.created_at),
         };
+
+        // Cache the result
+        cacheMessage(message);
+        return message;
     }
 
     // Full UUID - exact match
@@ -374,7 +408,7 @@ export async function getMessage(id: string): Promise<Message | null> {
         } catch { }
     }
 
-    return {
+    const message: Message = {
         id: r.id,
         sender: r.from_agent,
         recipient: r.to_agent,
@@ -388,6 +422,10 @@ export async function getMessage(id: string): Promise<Message | null> {
         archived: false,
         createdAt: new Date(r.created_at),
     };
+
+    // Cache the result
+    cacheMessage(message);
+    return message;
 }
 
 /**

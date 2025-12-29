@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Performance**: Default inbox query limit set to 50 messages (was unlimited)
+- **Performance**: Partial ID lookups now fetch 20 rows (was 100)
+- **Performance**: Added 30-second in-memory cache for message lookups
+
 ## [1.1.1] - 2025-12-28
 
 ### Added
