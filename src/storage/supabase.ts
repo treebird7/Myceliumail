@@ -176,9 +176,9 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
         query += '&read=eq.false';
     }
 
-    if (options?.limit) {
-        query += `&limit=${options.limit}`;
-    }
+    // Default limit to prevent fetching entire message history
+    const limit = options?.limit ?? 50;
+    query += `&limit=${limit}`;
 
     const results = await supabaseRequest<Array<{
         id: string;
@@ -247,9 +247,9 @@ export async function getMultiAgentInbox(agentIds: string[], options?: InboxOpti
         query += '&read=eq.false';
     }
 
-    if (options?.limit) {
-        query += `&limit=${options.limit}`;
-    }
+    // Default limit to prevent fetching entire message history
+    const limit = options?.limit ?? 50;
+    query += `&limit=${limit}`;
 
     const results = await supabaseRequest<Array<{
         id: string;
