@@ -1542,6 +1542,230 @@ server.tool(
     }
 );
 
+// ============================================
+// Mention Notification Feature
+// ============================================
+
+// Agent ID aliases for @mention parsing
+const AGENT_ALIASES: Record<string, string[]> = {
+    mycm: ['mycmail', 'myceliumail', 'mycm'],
+    ssan: ['spidersan', 'spider', 'ssan'],
+    arti: ['artisan', 'arti'],
+    wsan: ['watsan', 'wsan'],
+    msan: ['mappersan', 'mapper', 'msan'],
+    srlk: ['sherlocksan', 'sherlock', 'srlk'],
+    bsan: ['birdsan', 'bird', 'bsan'],
+    mark: ['marksan', 'mark'],
+    yosef: ['yosef'],
+};
+
+// Build reverse lookup: alias -> canonical agent ID
+const ALIAS_TO_AGENT: Record<string, string> = {};
+for (const [agentId, aliases] of Object.entries(AGENT_ALIASES)) {
+    for (const alias of aliases) {
+        ALIAS_TO_AGENT[alias.toLowerCase()] = agentId;
+    }
+}
+
+/**
+ * Parse @mentions from text and return canonical agent IDs
+ */
+function parseMentions(text: string): string[] {
+    const mentionRegex = /@(\w+)/g;
+    const mentions: string[] = [];
+    let match;
+    
+    while ((match = mentionRegex.exec(text)) !== null) {
+        const alias = match[1].toLowerCase();
+        const agentId = ALIAS_TO_AGENT[alias];
+        if (agentId && !mentions.includes(agentId)) {
+            mentions.push(agentId);
+        }
+    }
+    
+    return mentions;
+}
+
+// Tool: parse_mentions
+server.tool(
+    'parse_mentions',
+    'Parse @mentions from text and return the mentioned agent IDs',
+    {
+        text: z.string().describe('Text to parse for @mentions (e.g., "Hey @artisan and @mycmail!")'),
+    },
+    async ({ text }) => {
+        const mentions = parseMentions(text);
+        
+        if (mentions.length === 0) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '📭 No @mentions found in the text.\n\n💡 Use @agent_name to mention someone, e.g., @artisan, @mycmail, @spidersan'
+                }],
+            };
+        }
+        
+        return {
+            content: [{
+                type: 'text',
+                text: `🔔 Found ${mentions.length} mention(s):\n\n${mentions.map(id => `• @${id}`).join('\n')}\n\n💡 Use notify_mention to send notifications to these agents.`
+            }],
+        };
+    }
+);
+
+// Tool: notify_mention
+server.tool(
+    'notify_mention',
+    'Send a mycmail notification when an agent is @mentioned in Hub chat',
+    {
+        mentioned_agent: z.string().describe('Agent ID who was mentioned (e.g., "arti", "mycm")'),
+        sender_name: z.string().describe('Name of the person who mentioned them'),
+        message_preview: z.string().describe('Preview of the message containing the mention'),
+        source: z.string().optional().describe('Where the mention occurred (default: "Hub Chat")'),
+    },
+    async ({ mentioned_agent, sender_name, message_preview, source }) => {
+        const notificationSource = source || 'Hub Chat';
+        const myAgentId = getAgentId();
+        
+        // Normalize the mentioned agent
+        const normalizedAgent = ALIAS_TO_AGENT[mentioned_agent.toLowerCase()] || mentioned_agent.toLowerCase();
+        
+        // Don't notify yourself
+        if (normalizedAgent === myAgentId) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '⏭️ Skipped self-mention notification.'
+                }],
+            };
+        }
+        
+        const subject = `🔔 You were mentioned in ${notificationSource}`;
+        const body = `**${sender_name}** mentioned you:\n\n> ${message_preview.substring(0, 200)}${message_preview.length > 200 ? '...' : ''}\n\n---\n🔗 Check Hub Chat for context.`;
+        
+        try {
+            // Try Hub API first for faster local delivery
+            const hubUrl = process.env.HUB_URL || 'http://localhost:3000';
+            let sentViaHub = false;
+            
+            try {
+                const hubResponse = await fetch(`${hubUrl}/api/send/${normalizedAgent}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sender: 'mention-bot',
+                        subject,
+                        body,
+                    }),
+                    signal: AbortSignal.timeout(2000),
+                });
+                
+                if (hubResponse.ok) {
+                    sentViaHub = true;
+                }
+            } catch {
+                // Hub not available, fall through to Supabase
+            }
+            
+            // Fallback to Supabase
+            if (!sentViaHub) {
+                await storage.sendMessage('mention-bot', normalizedAgent, subject, body);
+            }
+            
+            return {
+                content: [{
+                    type: 'text',
+                    text: `✅ Mention notification sent to @${normalizedAgent}\n\n📬 From: ${sender_name}\n📍 Source: ${notificationSource}\n${sentViaHub ? '🌐 Via Hub API' : '☁️ Via Supabase'}`
+                }],
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: `❌ Failed to send mention notification: ${error}`
+                }],
+            };
+        }
+    }
+);
+
+// Tool: process_chat_mentions
+server.tool(
+    'process_chat_mentions',
+    'Process a Hub chat message for @mentions and send notifications to all mentioned agents',
+    {
+        sender_name: z.string().describe('Name of the message sender'),
+        message_text: z.string().describe('Full text of the chat message'),
+        source: z.string().optional().describe('Source context (default: "Hub Chat")'),
+    },
+    async ({ sender_name, message_text, source }) => {
+        const mentions = parseMentions(message_text);
+        const notificationSource = source || 'Hub Chat';
+        const myAgentId = getAgentId();
+        
+        if (mentions.length === 0) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: '📭 No @mentions found in the message.'
+                }],
+            };
+        }
+        
+        const results: { agent: string; status: string }[] = [];
+        
+        for (const agentId of mentions) {
+            // Skip self-mentions
+            if (agentId === myAgentId) {
+                results.push({ agent: agentId, status: '⏭️ Skipped (self)' });
+                continue;
+            }
+            
+            const subject = `🔔 You were mentioned in ${notificationSource}`;
+            const body = `**${sender_name}** mentioned you:\n\n> ${message_text.substring(0, 200)}${message_text.length > 200 ? '...' : ''}\n\n---\n🔗 Check Hub Chat for context.`;
+            
+            try {
+                // Try Hub API first
+                const hubUrl = process.env.HUB_URL || 'http://localhost:3000';
+                let sent = false;
+                
+                try {
+                    const hubResponse = await fetch(`${hubUrl}/api/send/${agentId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sender: 'mention-bot', subject, body }),
+                        signal: AbortSignal.timeout(2000),
+                    });
+                    
+                    if (hubResponse.ok) {
+                        sent = true;
+                        results.push({ agent: agentId, status: '✅ Notified (Hub)' });
+                    }
+                } catch {
+                    // Fall through to Supabase
+                }
+                
+                if (!sent) {
+                    await storage.sendMessage('mention-bot', agentId, subject, body);
+                    results.push({ agent: agentId, status: '✅ Notified (Supabase)' });
+                }
+            } catch (error) {
+                results.push({ agent: agentId, status: `❌ Failed: ${error}` });
+            }
+        }
+        
+        const summary = results.map(r => `• @${r.agent}: ${r.status}`).join('\n');
+        
+        return {
+            content: [{
+                type: 'text',
+                text: `🔔 Processed ${mentions.length} mention(s) from ${sender_name}:\n\n${summary}`
+            }],
+        };
+    }
+);
+
 // Start the server
 async function main() {
     // Verify Pro license before starting

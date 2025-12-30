@@ -2,6 +2,31 @@
 
 All notable changes to the MCP server will be documented in this file.
 
+## [1.3.0] - 2025-12-30 🔔 Mention Notifications
+
+### Added
+- **Mention Notification Tools** - @mention → mycmail notification system
+  - `parse_mentions` - Parse @mentions from text and return agent IDs
+  - `notify_mention` - Send mycmail notification to a mentioned agent
+  - `process_chat_mentions` - Process Hub chat for all @mentions and notify
+- **Agent Alias Registry** - Supports multiple aliases per agent:
+  - @mycmail, @myceliumail → mycm
+  - @artisan, @arti → arti
+  - @spidersan, @spider → ssan
+  - @watsan, @wsan → wsan
+  - @sherlocksan, @sherlock → srlk
+  - @birdsan, @bird → bsan
+  - @mappersan, @mapper → msan
+  - @marksan, @mark → mark
+  - @yosef → yosef
+
+### Changed
+- Total MCP tools: 28 (was 25)
+
+### Notes
+- Implemented per cloud-hub-deployment retro action item
+- Hub integration: call `process_chat_mentions` when chat is received
+
 ## [1.2.1] - 2025-12-29 🔐 Key Management Fix
 
 ### Added

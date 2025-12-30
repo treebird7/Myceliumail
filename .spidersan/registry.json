@@ -175,7 +175,11 @@
         "dist/storage/hub.d.ts",
         "dist/storage/hub.d.ts.map",
         "dist/storage/hub.js",
-        "dist/storage/hub.js.map"
+        "dist/storage/hub.js.map",
+        "dist/dashboard/public/index.html",
+        "dist/dashboard/public/styles.css",
+        "dist/dashboard/public/app.js",
+        "src/commands/inbox.ts"
       ],
       "status": "active",
       "registeredAt": "2025-12-22T23:46:32.459Z",
