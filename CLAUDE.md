@@ -6,7 +6,14 @@
 
 ## 🌅 START YOUR SESSION
 
-**When starting a session, run:**
+**1. Announce in Hub chat:**
+```bash
+curl -s -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"sender":"Myceliumail","text":"🍄 Network awakening. Spores spreading...","glyph":"🍄"}'
+```
+
+**2. Then run wake:**
 ```bash
 mycmail wake
 ```

@@ -51,7 +51,7 @@ export async function sendMessage(
         });
 
         if (!res.ok) return null;
-        const data = await res.json();
+        const data = await res.json() as { id: string };
 
         return {
             id: data.id,
@@ -81,7 +81,7 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
         const res = await fetch(url.toString());
         if (!res.ok) return [];
 
-        const data = await res.json();
+        const data = await res.json() as { messages?: any[] };
         return (data.messages || []).map((m: any) => ({
             id: m.id,
             sender: m.sender,
@@ -119,7 +119,7 @@ export async function getUnreadCount(agentId: string): Promise<number> {
     try {
         const res = await fetch(`${HUB_URL}/api/inbox/${agentId}/count`);
         if (!res.ok) return 0;
-        const data = await res.json();
+        const data = await res.json() as { unread?: number };
         return data.unread || 0;
     } catch {
         return 0;

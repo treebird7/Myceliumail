@@ -1472,6 +1472,76 @@ What would you like to do?`
     }
 );
 
+// Tool: send_hub_chat
+server.tool(
+    'send_hub_chat',
+    'Send a message to the Treebird Hub chat room (visible to all connected users)',
+    {
+        text: z.string().describe('Message to send to Hub chat'),
+        glyph: z.string().optional().describe('Emoji glyph for the message (defaults to agent glyph)'),
+    },
+    async ({ text, glyph }) => {
+        const agentId = getAgentId();
+
+        if (agentId === 'anonymous') {
+            return {
+                content: [{ type: 'text', text: '❌ Agent ID not configured. Set MYCELIUMAIL_AGENT_ID environment variable.' }],
+            };
+        }
+
+        // Agent name and glyph mapping
+        const AGENT_META: Record<string, { name: string; glyph: string }> = {
+            mycm: { name: 'Myceliumail', glyph: '🍄' },
+            ssan: { name: 'Spidersan', glyph: '🕷️' },
+            arti: { name: 'Artisan', glyph: '🎨' },
+            wsan: { name: 'Watsan', glyph: '📚' },
+            msan: { name: 'Mappersan', glyph: '🗺️' },
+            srlk: { name: 'Sherlocksan', glyph: '🔍' },
+            bsan: { name: 'Birdsan', glyph: '🐦' },
+            mark: { name: 'Marksan', glyph: '📣' },
+            yosef: { name: 'Yosef', glyph: '🧪' },
+        };
+
+        const meta = AGENT_META[agentId] || { name: agentId, glyph: '🤖' };
+        const messageGlyph = glyph || meta.glyph;
+
+        try {
+            const response = await fetch('http://localhost:3000/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sender: meta.name,
+                    senderType: 'agent',
+                    text: text,
+                    glyph: messageGlyph,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                return {
+                    content: [{ type: 'text', text: `❌ Failed to send to Hub: ${error}` }],
+                };
+            }
+
+            const result = await response.json() as { success: boolean; id: string };
+            return {
+                content: [{
+                    type: 'text',
+                    text: `✅ Message sent to Hub chat!\n\nID: ${result.id}\nText: ${text.substring(0, 100)}${text.length > 100 ? '...' : ''}`
+                }],
+            };
+        } catch (error) {
+            return {
+                content: [{
+                    type: 'text',
+                    text: `❌ Hub not reachable. Is the server running on localhost:3000?\n\nError: ${error}`
+                }],
+            };
+        }
+    }
+);
+
 // Start the server
 async function main() {
     // Verify Pro license before starting

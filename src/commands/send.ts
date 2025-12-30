@@ -41,6 +41,7 @@ export function createSendCommand(): Command {
         .argument('<subject>', 'Message subject')
         .option('-m, --message <body>', 'Message body (or pipe via stdin)')
         .option('-p, --plaintext', 'Send unencrypted (not recommended)')
+        .option('--no-hub', 'Skip Hub API, use Supabase directly')
         .action(async (recipient: string, subject: string, options) => {
             const config = loadConfig();
             const sender = config.agentId;
@@ -96,18 +97,47 @@ export function createSendCommand(): Command {
             }
 
             try {
-                const message = await storage.sendMessage(
-                    sender,
-                    normalizedRecipient,
-                    subject,
-                    body,
-                    messageOptions
-                );
+                // 🍄 TRY HUB API FIRST (local messaging)
+                const hubUrl = process.env.HUB_URL || 'http://localhost:3000';
+                let sentViaHub = false;
 
-                console.log(`\n✅ Message sent to ${normalizedRecipient}`);
-                console.log(`   ID: ${message.id}`);
-                console.log(`   Subject: ${subject}`);
-                console.log(`   ${encrypted ? '🔐 Encrypted' : '📨 Plaintext'}`);
+                if (!options.noHub) {
+                    try {
+                        const hubResponse = await fetch(`${hubUrl}/api/send/${normalizedRecipient}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ sender, subject, body }),
+                            signal: AbortSignal.timeout(2000) // 2s timeout
+                        });
+
+                        if (hubResponse.ok) {
+                            const result = await hubResponse.json() as { id: string };
+                            console.log(`\n✅ Message sent to ${normalizedRecipient}`);
+                            console.log(`   ID: ${result.id}`);
+                            console.log(`   Subject: ${subject}`);
+                            console.log(`   🌐 Via Hub API`);
+                            sentViaHub = true;
+                        }
+                    } catch {
+                        // Hub not available, fall through to Supabase
+                    }
+                }
+
+                // FALLBACK: Supabase (encrypted)
+                if (!sentViaHub) {
+                    const message = await storage.sendMessage(
+                        sender,
+                        normalizedRecipient,
+                        subject,
+                        body,
+                        messageOptions
+                    );
+
+                    console.log(`\n✅ Message sent to ${normalizedRecipient}`);
+                    console.log(`   ID: ${message.id}`);
+                    console.log(`   Subject: ${subject}`);
+                    console.log(`   ${encrypted ? '🔐 Encrypted' : '📨 Plaintext'}`);
+                }
             } catch (error) {
                 console.error('❌ Failed to send message:', error);
                 process.exit(1);
