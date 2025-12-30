@@ -64,6 +64,7 @@ export function createInboxCommand(): Command {
         .option('-c, --count', 'Show only message count (for scripting)')
         .option('-t, --tag <tag>', 'Filter by hashtag (e.g., --tag wake-feature)')
         .option('--json', 'Output as JSON (for scripting)')
+        .option('--no-hub', 'Skip Hub API, use Supabase directly')
         .action(async (options) => {
             const config = loadConfig();
             const agentId = config.agentId;
@@ -75,10 +76,45 @@ export function createInboxCommand(): Command {
             }
 
             try {
-                const rawMessages = await storage.getInbox(agentId, {
-                    unreadOnly: options.unread,
-                    limit: parseInt(options.limit, 10) * (options.tag ? 10 : 1),
-                });
+                // 🍄 TRY HUB API FIRST (local messaging)
+                const hubUrl = process.env.HUB_URL || 'http://localhost:3000';
+                let rawMessages: any[] = [];
+                let viaHub = false;
+
+                if (options.hub !== false) {
+                    try {
+                        const url = new URL(`${hubUrl}/api/inbox/${agentId}`);
+                        if (options.unread) url.searchParams.set('unread', 'true');
+
+                        const hubResponse = await fetch(url.toString(), {
+                            signal: AbortSignal.timeout(2000) // 2s timeout
+                        });
+
+                        if (hubResponse.ok) {
+                            const data = await hubResponse.json() as { messages?: any[] };
+                            rawMessages = (data.messages || []).map((m: any) => ({
+                                id: m.id,
+                                sender: m.sender,
+                                subject: m.subject || '',
+                                body: m.body || '',
+                                encrypted: false,
+                                read: m.read || false,
+                                createdAt: new Date(m.timestamp),
+                            }));
+                            viaHub = true;
+                        }
+                    } catch {
+                        // Hub not available, fall through to Supabase
+                    }
+                }
+
+                // FALLBACK: Supabase
+                if (!viaHub) {
+                    rawMessages = await storage.getInbox(agentId, {
+                        unreadOnly: options.unread,
+                        limit: parseInt(options.limit, 10) * (options.tag ? 10 : 1),
+                    });
+                }
 
                 const keyPair = loadKeyPair(agentId);
 
