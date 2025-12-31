@@ -26,11 +26,29 @@ async function readStdin(): Promise<string | null> {
 
     return new Promise((resolve) => {
         let data = '';
+        let resolved = false;
+
+        const cleanup = () => {
+            if (!resolved) {
+                resolved = true;
+                process.stdin.removeAllListeners('data');
+                process.stdin.removeAllListeners('end');
+                process.stdin.pause();
+            }
+        };
+
         process.stdin.setEncoding('utf8');
         process.stdin.on('data', (chunk) => { data += chunk; });
-        process.stdin.on('end', () => { resolve(data.trim() || null); });
-        // Timeout after 100ms if no data
-        setTimeout(() => resolve(null), 100);
+        process.stdin.on('end', () => {
+            cleanup();
+            resolve(data.trim() || null);
+        });
+
+        // Timeout after 100ms if no data - cleanup listeners to prevent hanging
+        setTimeout(() => {
+            cleanup();
+            resolve(data.trim() || null);
+        }, 100);
     });
 }
 
@@ -42,6 +60,7 @@ export function createSendCommand(): Command {
         .option('-m, --message <body>', 'Message body (or pipe via stdin)')
         .option('-p, --plaintext', 'Send unencrypted (not recommended)')
         .option('--no-hub', 'Skip Hub API, use Supabase directly')
+        .option('-w, --wake', 'Wake the recipient agent after sending')
         .action(async (recipient: string, subject: string, options) => {
             const config = loadConfig();
             const sender = config.agentId;
@@ -137,6 +156,30 @@ export function createSendCommand(): Command {
                     console.log(`   ID: ${message.id}`);
                     console.log(`   Subject: ${subject}`);
                     console.log(`   ${encrypted ? '🔐 Encrypted' : '📨 Plaintext'}`);
+                }
+
+                // 🔔 WAKE: Ping recipient's wake endpoint if --wake flag is set
+                if (options.wake) {
+                    try {
+                        const wakeResponse = await fetch(`${hubUrl}/api/wake/${normalizedRecipient}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                sender,
+                                reason: `New message: ${subject}`
+                            }),
+                            signal: AbortSignal.timeout(3000) // 3s timeout
+                        });
+
+                        if (wakeResponse.ok) {
+                            console.log(`   🔔 Wake signal sent to ${normalizedRecipient}`);
+                        } else {
+                            console.log(`   ⚠️  Wake failed (agent may be offline)`);
+                        }
+                    } catch {
+                        // Silent fail - wake is best-effort
+                        console.log(`   ⚠️  Hub unavailable for wake`);
+                    }
                 }
             } catch (error) {
                 console.error('❌ Failed to send message:', error);
