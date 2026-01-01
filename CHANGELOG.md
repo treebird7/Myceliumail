@@ -7,10 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Wake Flag for Send Command** - Trigger agent wake-up when sending messages
+  - `mycmail send <agent> "<subject>" --wake` - Send message + wake recipient via Hub
+  - Non-blocking with 3-second timeout
+  - Graceful fallback if Hub is offline
+- **VSCode Extension Hub Polling** - Reduced Supabase connection load
+  - Hub API polling mode as primary connection (10-second intervals)
+  - Supabase Realtime as fallback (when Hub unavailable)
+  - New setting: `myceliumail.hubUrl` (defaults to `https://hub.treebird.uk`)
+  - Fixes `ConnectionRateLimitReached` errors
+
 ### Changed
 - **Performance**: Default inbox query limit set to 50 messages (was unlimited)
 - **Performance**: Partial ID lookups now fetch 20 rows (was 100)
 - **Performance**: Added 30-second in-memory cache for message lookups
+- **CLAUDE.md**: Updated with production Hub URL (`https://hub.treebird.uk`)
 
 ## [1.1.1] - 2025-12-28
 
