@@ -53,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     // Load configuration and connect
     const config = loadConfiguration();
 
-    if (config.autoConnect && config.agentId && config.supabaseUrl && config.supabaseKey) {
+    if (config.autoConnect && config.agentId && (config.hubUrl || (config.supabaseUrl && config.supabaseKey))) {
         await initializeConnection(context, config);
     } else if (!config.agentId) {
         updateStatusBar('disconnected', 'Not configured');
@@ -144,9 +144,15 @@ function registerCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand('myceliumail.reconnect', async () => {
             const config = loadConfiguration();
-            if (!config.agentId || !config.supabaseUrl || !config.supabaseKey) {
+            if (!config.agentId) {
                 vscode.window.showErrorMessage(
-                    'Myceliumail not configured. Please set agentId, supabaseUrl, and supabaseKey in settings.'
+                    'Myceliumail not configured. Please set agentId in settings.'
+                );
+                return;
+            }
+            if (!config.hubUrl && (!config.supabaseUrl || !config.supabaseKey)) {
+                vscode.window.showErrorMessage(
+                    'No connection method configured. Set hubUrl or Supabase credentials.'
                 );
                 return;
             }
@@ -202,6 +208,7 @@ function loadConfiguration(): WakeConfig {
         agentId: config.get<string>('agentId') || '',
         supabaseUrl: config.get<string>('supabaseUrl') || '',
         supabaseKey: config.get<string>('supabaseKey') || '',
+        hubUrl: config.get<string>('hubUrl') || 'https://hub.treebird.uk',
         enableNotifications: config.get<boolean>('enableNotifications', true),
         enableChatParticipant: config.get<boolean>('enableChatParticipant', true),
         autoConnect: config.get<boolean>('autoConnect', true)

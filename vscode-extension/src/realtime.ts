@@ -28,6 +28,12 @@ export class RealtimeConnection implements vscode.Disposable {
     private reconnectTimer: NodeJS.Timeout | null = null;
     private outputChannel: vscode.OutputChannel;
 
+    // Hub polling
+    private hubPollTimer: NodeJS.Timeout | null = null;
+    private lastMessageId: string | null = null;
+    private useHubMode: boolean = true;  // Prefer Hub over Supabase!
+    private readonly HUB_POLL_INTERVAL = 10000; // Poll every 10 seconds
+
     // Reconnection settings
     private readonly MAX_RECONNECT_ATTEMPTS = 10;
     private readonly BASE_RECONNECT_DELAY = 1000; // 1 second
@@ -77,15 +83,118 @@ export class RealtimeConnection implements vscode.Disposable {
     }
 
     /**
-     * Connect to Supabase Realtime
+     * Connect - tries Hub API first, falls back to Supabase
      */
     async connect(): Promise<boolean> {
-        if (!this.validateConfig()) {
+        if (!this.config.agentId) {
+            this.log('❌ Agent ID not configured. Set myceliumail.agentId in settings.');
+            this.updateState({ status: 'error', error: 'Agent ID not configured' });
             return false;
         }
 
         this.updateState({ status: 'connecting', error: null });
-        this.log(`Connecting to Supabase for agent: ${this.config.agentId}`);
+
+        // 🌐 TRY HUB API FIRST (avoids Supabase rate limits!)
+        if (this.config.hubUrl) {
+            const hubSuccess = await this.connectViaHub();
+            if (hubSuccess) {
+                return true;
+            }
+            this.log('Hub unavailable, falling back to Supabase...');
+        }
+
+        // 📡 FALLBACK: Supabase Realtime
+        return await this.connectViaSupabase();
+    }
+
+    /**
+     * Connect via Hub API polling (preferred!)
+     */
+    private async connectViaHub(): Promise<boolean> {
+        this.log(`🌐 Connecting via Hub API: ${this.config.hubUrl}`);
+
+        try {
+            // Test Hub availability
+            const response = await fetch(`${this.config.hubUrl}/api/inbox/${this.config.agentId}?limit=1`, {
+                signal: AbortSignal.timeout(3000)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Hub returned ${response.status}`);
+            }
+
+            this.useHubMode = true;
+            this.updateState({
+                status: 'connected',
+                lastConnected: new Date(),
+                reconnectAttempts: 0,
+                error: null
+            });
+            this.log('✅ Connected via Hub API (polling mode)');
+
+            // Start polling for new messages
+            this.startHubPolling();
+            return true;
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            this.log(`Hub connection failed: ${errorMessage}`);
+            return false;
+        }
+    }
+
+    /**
+     * Start polling Hub API for new messages
+     */
+    private startHubPolling(): void {
+        this.stopHubPolling();
+
+        this.hubPollTimer = setInterval(async () => {
+            try {
+                const response = await fetch(
+                    `${this.config.hubUrl}/api/inbox/${this.config.agentId}?unread=true`,
+                    { signal: AbortSignal.timeout(5000) }
+                );
+
+                if (response.ok) {
+                    const data = await response.json() as { messages: AgentMessage[] };
+                    for (const msg of data.messages || []) {
+                        // Only notify for new messages we haven't seen
+                        if (!this.lastMessageId || msg.id > this.lastMessageId) {
+                            this.handleMessage(msg);
+                            this.lastMessageId = msg.id;
+                        }
+                    }
+                }
+            } catch {
+                // Silent fail, will retry on next poll
+            }
+        }, this.HUB_POLL_INTERVAL);
+
+        this.log(`📡 Polling Hub every ${this.HUB_POLL_INTERVAL / 1000}s`);
+    }
+
+    /**
+     * Stop Hub polling
+     */
+    private stopHubPolling(): void {
+        if (this.hubPollTimer) {
+            clearInterval(this.hubPollTimer);
+            this.hubPollTimer = null;
+        }
+    }
+
+    /**
+     * Connect via Supabase Realtime (fallback)
+     */
+    private async connectViaSupabase(): Promise<boolean> {
+        if (!this.config.supabaseUrl || !this.config.supabaseKey) {
+            this.log('❌ Supabase not configured. Set myceliumail.supabaseUrl and myceliumail.supabaseKey.');
+            this.updateState({ status: 'error', error: 'Supabase not configured' });
+            return false;
+        }
+
+        this.log(`📡 Connecting to Supabase for agent: ${this.config.agentId}`);
+        this.useHubMode = false;
 
         try {
             // Create Supabase client
@@ -119,7 +228,7 @@ export class RealtimeConnection implements vscode.Disposable {
             return true;
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            this.log(`Connection failed: ${errorMessage}`);
+            this.log(`Supabase connection failed: ${errorMessage}`);
             this.updateState({
                 status: 'error',
                 error: errorMessage
@@ -130,10 +239,11 @@ export class RealtimeConnection implements vscode.Disposable {
     }
 
     /**
-     * Disconnect from Supabase Realtime
+     * Disconnect from realtime (both Hub and Supabase)
      */
     async disconnect(): Promise<void> {
         this.cancelReconnect();
+        this.stopHubPolling();
 
         if (this.channel && this.client) {
             await this.client.removeChannel(this.channel);

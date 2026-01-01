@@ -41,6 +41,11 @@
                     "default": "",
                     "description": "Supabase anon key"
                 },
+                "myceliumail.hubUrl": {
+                    "type": "string",
+                    "default": "https://hub.treebird.uk",
+                    "description": "Treebird Hub URL (preferred over Supabase for message polling)"
+                },
                 "myceliumail.enableNotifications": {
                     "type": "boolean",
                     "default": true,

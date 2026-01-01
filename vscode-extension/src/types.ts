@@ -21,6 +21,7 @@ export interface WakeConfig {
     agentId: string;
     supabaseUrl: string;
     supabaseKey: string;
+    hubUrl: string;  // Hub API URL (preferred over Supabase)
     enableNotifications: boolean;
     enableChatParticipant: boolean;
     autoConnect: boolean;

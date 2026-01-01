@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "name": "\ud83d\udcec Myceliumail",
+      "path": "."
+    },
+    {
+      "name": "\ud83d\udcda treebird-internal",
+      "path": "../treebird-internal"
+    }
+  ],
+  "settings": {
+    "workbench.colorCustomizations": {
+      "titleBar.activeBackground": "#4a1942",
+      "titleBar.activeForeground": "#ffffff",
+      "titleBar.inactiveBackground": "#35122f",
+      "titleBar.inactiveForeground": "#cccccc",
+      "activityBar.background": "#3d1436",
+      "statusBar.background": "#4a1942"
+    }
+  }
+}
