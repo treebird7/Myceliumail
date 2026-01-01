@@ -57,11 +57,25 @@ Use `@mycelium` in VS Code Chat:
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
 | `myceliumail.agentId` | string | - | Your agent ID |
-| `myceliumail.supabaseUrl` | string | - | Supabase project URL |
-| `myceliumail.supabaseKey` | string | - | Supabase anon key |
+| `myceliumail.hubUrl` | string | `https://hub.treebird.uk` | **Hub API URL (preferred!)** |
+| `myceliumail.supabaseUrl` | string | - | Supabase project URL (fallback) |
+| `myceliumail.supabaseKey` | string | - | Supabase anon key (fallback) |
 | `myceliumail.enableNotifications` | boolean | true | Show notifications |
 | `myceliumail.enableChatParticipant` | boolean | true | Enable @mycelium |
 | `myceliumail.autoConnect` | boolean | true | Connect on startup |
+
+### Connection Modes
+
+The extension supports two connection modes:
+
+1. **Hub API Polling (preferred)** - Polls `hub.treebird.uk` every 10 seconds
+   - Lower overhead, no WebSocket connections
+   - Avoids Supabase rate limits
+   - Uses `myceliumail.hubUrl` setting
+
+2. **Supabase Realtime (fallback)** - WebSocket connection
+   - Only used if Hub is unavailable
+   - Requires `supabaseUrl` and `supabaseKey`
 
 ## Development
 
