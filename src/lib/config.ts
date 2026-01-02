@@ -16,6 +16,7 @@ export interface Config {
     supabaseUrl?: string;
     supabaseKey?: string;
     storageMode: 'auto' | 'supabase' | 'local';
+    hubUrl?: string;  // Treebird Hub WebSocket URL (Sprint 3)
 }
 
 /**
@@ -36,6 +37,7 @@ export function loadConfig(): Config {
     const envSupabaseUrl = process.env.SUPABASE_URL;
     const envSupabaseKey = process.env.SUPABASE_ANON_KEY;
     const envStorageMode = process.env.MYCELIUMAIL_STORAGE as 'auto' | 'supabase' | 'local' | undefined;
+    const envHubUrl = process.env.HUB_URL;
 
     // Try to load from config file
     let fileConfig: Partial<Config> = {};
@@ -60,6 +62,7 @@ export function loadConfig(): Config {
         supabaseUrl: envSupabaseUrl || fileConfig.supabaseUrl,
         supabaseKey: envSupabaseKey || fileConfig.supabaseKey,
         storageMode: envStorageMode || fileConfig.storageMode || 'auto',
+        hubUrl: envHubUrl || fileConfig.hubUrl,
     };
 
     return config;

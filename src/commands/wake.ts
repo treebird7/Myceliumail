@@ -9,6 +9,7 @@ import { Command } from 'commander';
 import { loadConfig } from '../lib/config.js';
 import { loadKeyPair, decryptMessage } from '../lib/crypto.js';
 import { generateDigest, sendDigestToWatsan } from '../lib/watson-digest.js';
+import { connectOnWake } from '../lib/hub-client.js';
 import * as storage from '../storage/supabase.js';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -215,6 +216,28 @@ export function createWakeCommand(): Command {
                         }
                     } catch {
                         // Silent fail - digest is optional
+                    }
+                }
+
+                // Connect to Hub WebSocket (if configured)
+                // Sprint 3 - WS-003: Agent WebSocket Client
+                if (config.hubUrl && !options.silent) {
+                    try {
+                        const hubClient = await connectOnWake(agentId, {
+                            onWake: (payload) => {
+                                console.log(`\n🔔 Wake signal from ${payload.sender || 'Hub'}: ${payload.message || payload.reason}`);
+                            },
+                            onDisconnect: (reason) => {
+                                if (!options.quiet) {
+                                    console.log(`📡 Hub disconnected: ${reason}`);
+                                }
+                            }
+                        });
+                        if (hubClient && !options.quiet) {
+                            console.log('📡 Connected to Hub (WebSocket)');
+                        }
+                    } catch {
+                        // Silent fail - Hub is optional
                     }
                 }
 

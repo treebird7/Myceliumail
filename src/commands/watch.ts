@@ -3,6 +3,9 @@
  * 
  * Listen for new messages in real-time and show desktop notifications.
  * Can also trigger wake sequence and log to collaborative files.
+ * 
+ * Sprint 3 Update (WS-003): Also connects to Hub WebSocket for
+ * real-time flock events (wake, task:*, conflict:*, etc.)
  */
 
 import { Command } from 'commander';
@@ -13,6 +16,8 @@ import { homedir } from 'os';
 import { loadConfig } from '../lib/config.js';
 import { subscribeToMessages, closeConnection } from '../lib/realtime.js';
 import { triggerWakeSequence } from '../lib/webhook-handler.js';
+import { HubClient, disconnectHub } from '../lib/hub-client.js';
+import type { WakePayload, ChatPayload, StatusPayload } from '../types/websocket.js';
 
 interface InboxStatus {
     status: 0 | 1 | 2;  // 0=none, 1=new message, 2=urgent
@@ -63,11 +68,13 @@ export function clearInboxStatus(): void {
 
 export function createWatchCommand(): Command {
     const command = new Command('watch')
-        .description('Watch for new messages in real-time')
+        .description('Watch for new messages and Hub events in real-time')
         .option('-a, --agent <id>', 'Agent ID to watch (default: current agent)')
         .option('-q, --quiet', 'Suppress console output, only show notifications')
         .option('-s, --status-file', 'Write notification status to ~/.mycmail/inbox_status.json')
         .option('--wake', 'Trigger wake sequence and log to collaborative files on new message')
+        .option('--hub', 'Also connect to Hub WebSocket for flock events (requires HUB_URL in config)')
+        .option('--hub-only', 'Only connect to Hub WebSocket, skip Supabase Realtime')
         .option('--clear-status', 'Clear the status file and exit')
         .action(async (options) => {
             // Handle --clear-status flag
@@ -184,9 +191,93 @@ export function createWatchCommand(): Command {
                 }
             );
 
-            if (!channel) {
+            if (!channel && !options.hubOnly) {
                 console.error('❌ Failed to start watching. Check your Supabase configuration.');
                 process.exit(1);
+            }
+
+            // ==== Hub WebSocket Connection (Sprint 3) ====
+            let hubClient: HubClient | null = null;
+
+            if ((options.hub || options.hubOnly) && config.hubUrl) {
+                if (!options.quiet) {
+                    console.log(`📡 Connecting to Hub at ${config.hubUrl}...`);
+                }
+
+                // Define callbacks for Hub events
+                const hubCallbacks = {
+                    onWake: (payload: WakePayload) => {
+                        if (!options.quiet) {
+                            console.log(`🌅 [Hub] Wake signal from ${payload.sender || 'system'}`);
+                            console.log(`   Reason: ${payload.reason || 'unknown'}`);
+                        }
+
+                        notifier.notify({
+                            title: '🌅 Wake Signal',
+                            message: payload.message || `Wake triggered by ${payload.sender}`,
+                            sound: true,
+                        });
+
+                        // Optionally trigger wake sequence
+                        if (options.wake) {
+                            triggerWakeSequence(agentId, {
+                                id: `hub-wake-${Date.now()}`,
+                                recipient: agentId,
+                                sender: payload.sender || 'hub',
+                                subject: 'Hub Wake Signal',
+                                created_at: new Date().toISOString(),
+                            }).catch(err => {
+                                if (!options.quiet) {
+                                    console.error('⚠️ Wake trigger failed:', err.message);
+                                }
+                            });
+                        }
+                    },
+                    onChat: (payload: ChatPayload) => {
+                        if (!options.quiet) {
+                            console.log(`💬 [Hub Chat] ${payload.sender}: ${payload.message}`);
+                        }
+
+                        notifier.notify({
+                            title: `💬 ${payload.sender}`,
+                            message: payload.message.length > 100
+                                ? payload.message.substring(0, 100) + '...'
+                                : payload.message,
+                            sound: false,
+                        });
+                    },
+                    onConnect: () => {
+                        if (!options.quiet) {
+                            console.log('✅ Connected to Hub WebSocket\n');
+                        }
+                    },
+                    onDisconnect: (reason: string) => {
+                        if (!options.quiet) {
+                            console.log(`🔌 [Hub] Disconnected: ${reason}`);
+                        }
+                    },
+                    onError: (error: Error) => {
+                        if (!options.quiet) {
+                            console.error(`❌ [Hub] Error: ${error.message}`);
+                        }
+                    },
+                };
+
+                hubClient = new HubClient({
+                    hubUrl: config.hubUrl,
+                    agentId: agentId,
+                    token: process.env.AGENT_TOKEN,
+                    heartbeatIntervalMs: 30000,
+                    autoReconnect: true,
+                }, hubCallbacks);
+
+                // Connect to Hub
+                const connected = await hubClient.connect();
+                if (!connected && !options.quiet) {
+                    console.warn('⚠️  Failed to connect to Hub. Continuing with Supabase only.');
+                }
+            } else if ((options.hub || options.hubOnly) && !config.hubUrl) {
+                console.warn('⚠️  --hub flag used but HUB_URL not configured in .env');
             }
 
             // Handle graceful shutdown
@@ -194,7 +285,18 @@ export function createWatchCommand(): Command {
                 if (!options.quiet) {
                     console.log('\n👋 Stopping watch...');
                 }
+
+                // Disconnect from Hub
+                if (hubClient) {
+                    await hubClient.disconnect();
+                    if (!options.quiet) {
+                        console.log('📡 Disconnected from Hub');
+                    }
+                }
+
+                // Disconnect from Supabase
                 await closeConnection();
+
                 process.exit(0);
             };
 

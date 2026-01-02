@@ -61,6 +61,7 @@ export function createSendCommand(): Command {
         .option('-p, --plaintext', 'Send unencrypted (not recommended)')
         .option('--no-hub', 'Skip Hub API, use Supabase directly')
         .option('-w, --wake', 'Wake the recipient agent after sending')
+        .option('-t, --task <id>', 'Link message to a Task Torrenting micro-task')
         .action(async (recipient: string, subject: string, options) => {
             const config = loadConfig();
             const sender = config.agentId;
@@ -122,10 +123,14 @@ export function createSendCommand(): Command {
 
                 if (!options.noHub) {
                     try {
+                        const hubPayload: Record<string, string> = { sender, subject, body };
+                        if (options.task) {
+                            hubPayload.taskId = options.task;
+                        }
                         const hubResponse = await fetch(`${hubUrl}/api/send/${normalizedRecipient}`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ sender, subject, body }),
+                            body: JSON.stringify(hubPayload),
                             signal: AbortSignal.timeout(2000) // 2s timeout
                         });
 
@@ -134,6 +139,7 @@ export function createSendCommand(): Command {
                             console.log(`\n✅ Message sent to ${normalizedRecipient}`);
                             console.log(`   ID: ${result.id}`);
                             console.log(`   Subject: ${subject}`);
+                            if (options.task) console.log(`   📋 Task: ${options.task}`);
                             console.log(`   🌐 Via Hub API`);
                             sentViaHub = true;
                         }

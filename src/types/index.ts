@@ -2,6 +2,9 @@
  * Myceliumail Type Definitions
  */
 
+// WebSocket event types (Sprint 3 - WS-002)
+export * from './websocket.js';
+
 export interface Attachment {
     name: string;      // filename
     type: string;      // MIME type
