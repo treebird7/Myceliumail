@@ -228,8 +228,8 @@ export class HubClient {
             this.callbacks.onWake?.(payload);
         });
 
-        // Chat message
-        this.socket.on('chat', (payload: ChatPayload) => {
+        // Chat message (Hub emits 'chat:message')
+        this.socket.on('chat:message', (payload: ChatPayload) => {
             this.callbacks.onChat?.(payload);
         });
 

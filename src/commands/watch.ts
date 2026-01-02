@@ -233,16 +233,18 @@ export function createWatchCommand(): Command {
                             });
                         }
                     },
-                    onChat: (payload: ChatPayload) => {
+                    onChat: (payload: ChatPayload & { text?: string }) => {
+                        // Hub sends 'text', our type uses 'message' - handle both
+                        const messageText = payload.text || payload.message || '';
                         if (!options.quiet) {
-                            console.log(`💬 [Hub Chat] ${payload.sender}: ${payload.message}`);
+                            console.log(`💬 [Hub Chat] ${payload.sender}: ${messageText}`);
                         }
 
                         notifier.notify({
                             title: `💬 ${payload.sender}`,
-                            message: payload.message.length > 100
-                                ? payload.message.substring(0, 100) + '...'
-                                : payload.message,
+                            message: messageText.length > 100
+                                ? messageText.substring(0, 100) + '...'
+                                : messageText,
                             sound: false,
                         });
                     },
