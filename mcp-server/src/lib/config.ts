@@ -6,6 +6,16 @@
  * 2. ~/.myceliumail/config.json (fallback)
  */
 
+// Load .env from the mcp-server directory (fix for Claude Desktop CWD issue)
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const envPath = resolve(__dirname, '../../.env');  // mcp-server/.env
+config({ path: envPath });
+
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
