@@ -10,6 +10,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+// Load .env from correct path (not CWD which may be wrong when spawned by Claude)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const envPath = resolve(__dirname, '../../.env');  // myceliumail repo root
+config({ path: envPath });
 
 import * as crypto from './lib/crypto.js';
 import * as storage from './lib/storage.js';
@@ -1574,7 +1583,7 @@ function parseMentions(text: string): string[] {
     const mentionRegex = /@(\w+)/g;
     const mentions: string[] = [];
     let match;
-    
+
     while ((match = mentionRegex.exec(text)) !== null) {
         const alias = match[1].toLowerCase();
         const agentId = ALIAS_TO_AGENT[alias];
@@ -1582,7 +1591,7 @@ function parseMentions(text: string): string[] {
             mentions.push(agentId);
         }
     }
-    
+
     return mentions;
 }
 
@@ -1595,7 +1604,7 @@ server.tool(
     },
     async ({ text }) => {
         const mentions = parseMentions(text);
-        
+
         if (mentions.length === 0) {
             return {
                 content: [{
@@ -1604,7 +1613,7 @@ server.tool(
                 }],
             };
         }
-        
+
         return {
             content: [{
                 type: 'text',
@@ -1627,10 +1636,10 @@ server.tool(
     async ({ mentioned_agent, sender_name, message_preview, source }) => {
         const notificationSource = source || 'Hub Chat';
         const myAgentId = getAgentId();
-        
+
         // Normalize the mentioned agent
         const normalizedAgent = ALIAS_TO_AGENT[mentioned_agent.toLowerCase()] || mentioned_agent.toLowerCase();
-        
+
         // Don't notify yourself
         if (normalizedAgent === myAgentId) {
             return {
@@ -1640,15 +1649,15 @@ server.tool(
                 }],
             };
         }
-        
+
         const subject = `🔔 You were mentioned in ${notificationSource}`;
         const body = `**${sender_name}** mentioned you:\n\n> ${message_preview.substring(0, 200)}${message_preview.length > 200 ? '...' : ''}\n\n---\n🔗 Check Hub Chat for context.`;
-        
+
         try {
             // Try Hub API first for faster local delivery
             const hubUrl = process.env.HUB_URL || 'http://localhost:3000';
             let sentViaHub = false;
-            
+
             try {
                 const hubResponse = await fetch(`${hubUrl}/api/send/${normalizedAgent}`, {
                     method: 'POST',
@@ -1660,19 +1669,19 @@ server.tool(
                     }),
                     signal: AbortSignal.timeout(2000),
                 });
-                
+
                 if (hubResponse.ok) {
                     sentViaHub = true;
                 }
             } catch {
                 // Hub not available, fall through to Supabase
             }
-            
+
             // Fallback to Supabase
             if (!sentViaHub) {
                 await storage.sendMessage('mention-bot', normalizedAgent, subject, body);
             }
-            
+
             return {
                 content: [{
                     type: 'text',
@@ -1703,7 +1712,7 @@ server.tool(
         const mentions = parseMentions(message_text);
         const notificationSource = source || 'Hub Chat';
         const myAgentId = getAgentId();
-        
+
         if (mentions.length === 0) {
             return {
                 content: [{
@@ -1712,24 +1721,24 @@ server.tool(
                 }],
             };
         }
-        
+
         const results: { agent: string; status: string }[] = [];
-        
+
         for (const agentId of mentions) {
             // Skip self-mentions
             if (agentId === myAgentId) {
                 results.push({ agent: agentId, status: '⏭️ Skipped (self)' });
                 continue;
             }
-            
+
             const subject = `🔔 You were mentioned in ${notificationSource}`;
             const body = `**${sender_name}** mentioned you:\n\n> ${message_text.substring(0, 200)}${message_text.length > 200 ? '...' : ''}\n\n---\n🔗 Check Hub Chat for context.`;
-            
+
             try {
                 // Try Hub API first
                 const hubUrl = process.env.HUB_URL || 'http://localhost:3000';
                 let sent = false;
-                
+
                 try {
                     const hubResponse = await fetch(`${hubUrl}/api/send/${agentId}`, {
                         method: 'POST',
@@ -1737,7 +1746,7 @@ server.tool(
                         body: JSON.stringify({ sender: 'mention-bot', subject, body }),
                         signal: AbortSignal.timeout(2000),
                     });
-                    
+
                     if (hubResponse.ok) {
                         sent = true;
                         results.push({ agent: agentId, status: '✅ Notified (Hub)' });
@@ -1745,7 +1754,7 @@ server.tool(
                 } catch {
                     // Fall through to Supabase
                 }
-                
+
                 if (!sent) {
                     await storage.sendMessage('mention-bot', agentId, subject, body);
                     results.push({ agent: agentId, status: '✅ Notified (Supabase)' });
@@ -1754,9 +1763,9 @@ server.tool(
                 results.push({ agent: agentId, status: `❌ Failed: ${error}` });
             }
         }
-        
+
         const summary = results.map(r => `• @${r.agent}: ${r.status}`).join('\n');
-        
+
         return {
             content: [{
                 type: 'text',
