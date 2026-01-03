@@ -38,6 +38,7 @@ import { createWakeCommand } from '../commands/wake.js';
 import { createCloseCommand } from '../commands/close.js';
 import { createTagsCommand } from '../commands/tags.js';
 import { createCollabCommand } from '../commands/collab.js';
+import { createClaimCommand } from '../commands/claim.js';
 import { createSignCommand, createSignKeygenCommand } from '../commands/sign.js';
 import { createVerifyCommand } from '../commands/verify.js';
 import { createCanaryInitCommand, createCanaryCheckCommand } from '../commands/canary.js';
@@ -76,6 +77,7 @@ program.addCommand(createWakeCommand());
 program.addCommand(createCloseCommand());
 program.addCommand(createTagsCommand());
 program.addCommand(createCollabCommand());
+program.addCommand(createClaimCommand());
 
 // Identity verification (signing)
 program.addCommand(createSignCommand());
