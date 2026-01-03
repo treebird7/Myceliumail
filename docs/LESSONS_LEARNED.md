@@ -125,3 +125,78 @@ This confirmed the data was in the cloud and the issue was in fetching, not stor
 - `mcp-server/src/lib/config.ts` - Added config file support
 - `mcp-server/src/lib/storage.ts` - Fixed column names, added error logging
 - `mcp-server/package.json` - Version bumps
+
+---
+
+## Lessons Learned: Perpetual Dance Collab (January 2-3, 2026)
+
+### 5. dotenv CWD Issue (MCP Loading)
+**Problem:** When Claude Desktop spawns MCP servers, the working directory is often `/` or user's home, not the repo root. `import 'dotenv/config'` looks for `.env` in CWD.
+
+**Symptom:** MCP server couldn't find Supabase credentials, silently failed.
+
+**Fix:** Use explicit path resolution:
+```typescript
+import { config } from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const envPath = resolve(__dirname, '../../.env');
+config({ path: envPath });
+```
+
+**Lesson:** Never rely on CWD for config files in MCP servers. Always resolve paths relative to the script location.
+
+---
+
+### 6. WebSocket Event Name Mismatches
+**Problem:** My hub-client listened for `chat` events but Hub emits `chat:message`.
+
+**Symptom:** Chat messages weren't received; no errors, just silent failure.
+
+**Fix:** Changed `socket.on('chat', ...)` to `socket.on('chat:message', ...)`.
+
+**Lesson:** When integrating with external APIs:
+1. Check the actual event names in the source code
+2. Log all received events during development to spot mismatches
+3. Don't assume event names — verify them
+
+---
+
+### 7. Payload Field Name Mismatches
+**Problem:** Hub sends `text` for chat content, but my types expected `message`.
+
+**Symptom:** `TypeError: Cannot read properties of undefined (reading 'length')`
+
+**Fix:** Handle both fields: `const messageText = payload.text || payload.message || '';`
+
+**Lesson:** When consuming external payloads:
+1. Check the actual payload structure
+2. Use fallbacks for field name variations
+3. Add type annotations with optional fields for flexibility
+
+---
+
+### 8. Canonical Paths for Shared Files
+**Problem:** Agents using repo symlinks (`~/Dev/Spidersan/treebird-internal/...`) instead of canonical path.
+
+**Symptom:** Merge conflicts, editing wrong file, confusion.
+
+**Fix:** Always use: `/Users/freedbird/Dev/treebird-internal/collab/` for shared files.
+
+**Lesson:** Document and enforce canonical paths for all shared resources.
+
+---
+
+### 9. Task Completion Protocol
+**Problem:** Tasks marked as "done" before actually being built and tested.
+
+**Protocol Now:**
+1. ✅ Update collab doc status
+2. 📤 Git commit + push immediately
+3. 📢 Add completion note to URGENT section
+
+**Lesson:** Transparency > Speed. Never mark done until shipped AND tested.
+
