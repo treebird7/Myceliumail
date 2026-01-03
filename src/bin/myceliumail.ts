@@ -41,6 +41,7 @@ import { createCollabCommand } from '../commands/collab.js';
 import { createClaimCommand } from '../commands/claim.js';
 import { createCompleteCommand } from '../commands/complete.js';
 import { createHubStatusCommand } from '../commands/hub-status.js';
+import { createReceiptCommand } from '../commands/receipt.js';
 import { createSignCommand, createSignKeygenCommand } from '../commands/sign.js';
 import { createVerifyCommand } from '../commands/verify.js';
 import { createCanaryInitCommand, createCanaryCheckCommand } from '../commands/canary.js';
@@ -82,6 +83,7 @@ program.addCommand(createCollabCommand());
 program.addCommand(createClaimCommand());
 program.addCommand(createCompleteCommand());
 program.addCommand(createHubStatusCommand());
+program.addCommand(createReceiptCommand());
 
 // Identity verification (signing)
 program.addCommand(createSignCommand());
