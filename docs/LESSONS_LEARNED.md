@@ -200,3 +200,44 @@ config({ path: envPath });
 
 **Lesson:** Transparency > Speed. Never mark done until shipped AND tested.
 
+---
+
+## Lessons Learned: Mammoth Hunt Collab (January 3, 2026)
+
+### 10. Collab Task Format Matters for Automation
+**Problem:** Created `mycmail claim` command but couldn't auto-claim tasks because collab table didn't use `[ ]` checkboxes or `⬜` status markers.
+
+**Symptom:** Command worked but couldn't find claimable tasks in the collab doc.
+
+**Fix:** Updated collab format manually; future collabs should use consistent claimable markers:
+- `[ ]` for markdown checkboxes
+- `⬜ Open` for table status columns
+
+**Lesson:** When building automation tools, design the data format first. Standardize on consistent markers across all collab docs.
+
+---
+
+### 11. MCP Health Monitoring Discovery
+**Problem:** MCP server showing NOT RUNNING despite being needed for Antigravity integration.
+
+**Discovery:** `spidersan mcp-health` shows myceliumail-mcp not running with zombie Snyk processes.
+
+**Next Steps:** Need to debug MCP binary path and Antigravity config.
+
+**Lesson:** Always check ecosystem health before claiming tasks complete. MCP issues may not be obvious until you run diagnostics.
+
+---
+
+### 12. Identity Block Prevents Agent Confusion
+**Why:** Agents without explicit identity can confuse themselves with other agents when processing shared context files.
+
+**Format Added:**
+```markdown
+## 🪪 Identity
+
+I am **Myceliumail** (mycm). My glyph is 🍄.  
+For shared files, always use canonical: `/Users/freedbird/Dev/treebird-internal`
+```
+
+**Lesson:** Simple identity blocks at the top of CLAUDE.md prevent confusion during multi-agent collabs.
+

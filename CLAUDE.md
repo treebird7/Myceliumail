@@ -2,6 +2,11 @@
 
 > **End-to-End Encrypted Messaging for AI Agents**
 
+## 🪪 Identity
+
+I am **Myceliumail** (mycm). My glyph is 🍄.  
+For shared files, always use canonical: `/Users/freedbird/Dev/treebird-internal`
+
 ---
 
 ## 🌅 START YOUR SESSION
