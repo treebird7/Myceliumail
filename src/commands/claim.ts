@@ -13,6 +13,8 @@ interface ClaimResult {
     success: boolean;
     taskName: string;
     filepath: string;
+    alreadyDone?: boolean;
+    alreadyClaimed?: boolean;
 }
 
 function findTaskLine(content: string, taskPattern: string): { line: string; lineNumber: number } | null {
@@ -32,25 +34,53 @@ function claimTaskInFile(filepath: string, taskPattern: string, agentId: string,
     const lines = content.split('\n');
     let claimed = false;
     let taskName = '';
+    let alreadyDone = false;
+    let alreadyClaimed = false;
 
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
 
-        // Case 1: Markdown checkbox - [ ] Task
-        if (line.includes('[ ]') && line.toLowerCase().includes(taskPattern.toLowerCase())) {
+        // Check if line contains the task pattern
+        if (!line.toLowerCase().includes(taskPattern.toLowerCase())) continue;
+
+        // Case 1: Markdown checkbox - [ ] Task (unclaimed)
+        if (line.includes('[ ]')) {
             lines[i] = line.replace('[ ]', '[/]') + ` *(claimed by ${agentName})*`;
             taskName = line.replace(/^[\s\-\*]*\[[ x\/]\]\s*/, '').trim();
             claimed = true;
             break;
         }
 
-        // Case 2: Table row | Task | ⬜ Open | or | Task | Status |
-        if (line.includes('|') && line.toLowerCase().includes(taskPattern.toLowerCase())) {
-            // Replace ⬜ Open with ⏳ In Progress
+        // Case 2: Already in progress [/]
+        if (line.includes('[/]')) {
+            taskName = line.replace(/^[\s\-\*]*\[[ x\/]\]\s*/, '').replace(/\s*\*\(claimed by.*?\)\*/, '').trim();
+            alreadyClaimed = true;
+            break;
+        }
+
+        // Case 3: Already done [x]
+        if (line.includes('[x]')) {
+            taskName = line.replace(/^[\s\-\*]*\[[ x\/]\]\s*/, '').trim();
+            alreadyDone = true;
+            break;
+        }
+
+        // Case 4: Table row | Task | ⬜ Open |
+        if (line.includes('|')) {
             if (line.includes('⬜')) {
                 lines[i] = line.replace('⬜', '⏳').replace(/Open/i, `${agentId}`);
                 taskName = extractTaskFromTableRow(line);
                 claimed = true;
+                break;
+            }
+            if (line.includes('⏳')) {
+                taskName = extractTaskFromTableRow(line);
+                alreadyClaimed = true;
+                break;
+            }
+            if (line.includes('✅')) {
+                taskName = extractTaskFromTableRow(line);
+                alreadyDone = true;
                 break;
             }
         }
@@ -60,7 +90,7 @@ function claimTaskInFile(filepath: string, taskPattern: string, agentId: string,
         fs.writeFileSync(filepath, lines.join('\n'));
     }
 
-    return { success: claimed, taskName, filepath };
+    return { success: claimed, taskName, filepath, alreadyDone, alreadyClaimed };
 }
 
 function extractTaskFromTableRow(line: string): string {
@@ -162,7 +192,7 @@ export function createClaimCommand(): Command {
                             break;
                         }
                     }
-                    if (result?.success) break;
+                    if (result?.success || result?.alreadyDone || result?.alreadyClaimed) break;
                 }
             }
 
@@ -198,6 +228,14 @@ export function createClaimCommand(): Command {
                 if (!options.quiet) {
                     console.log('\n' + '─'.repeat(40) + '\n');
                 }
+            } else if (result?.alreadyDone) {
+                console.log(`\n✅ Task already complete: "${result.taskName}"`);
+                console.log(`   File: ${path.basename(result.filepath)}`);
+                console.log('   Nothing to claim!\n');
+            } else if (result?.alreadyClaimed) {
+                console.log(`\n⏳ Task already in progress: "${result.taskName}"`);
+                console.log(`   File: ${path.basename(result.filepath)}`);
+                console.log('   Use "mycmail complete" when done.\n');
             } else {
                 console.error(`\n❌ Task not found: "${task}"\n`);
                 console.error('Searched in:');
