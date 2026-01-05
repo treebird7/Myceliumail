@@ -241,3 +241,123 @@ For shared files, always use canonical: `/Users/freedbird/Dev/treebird-internal`
 
 **Lesson:** Simple identity blocks at the top of CLAUDE.md prevent confusion during multi-agent collabs.
 
+---
+
+## Lessons Learned: MCP Restart Collab (January 5, 2026)
+
+### 13. Process ≠ Connection (Critical MCP Insight)
+**Problem:** MCP process running at OS level (`ps aux` shows PID) but tools not available in Antigravity.
+
+**Symptom:** `list_resources` fails with EOF, but process is clearly running.
+
+**Root Cause:** Antigravity connects to MCPs **only at startup**. Externally spawned or restarted MCPs don't get auto-reconnected.
+
+**Fix:** Must restart Antigravity to reconnect. No API exists to trigger reconnection.
+
+**Lesson:** When debugging "MCP not working," always check BOTH:
+1. Is the process running? (`ps aux | grep mcp`)
+2. Is Antigravity connected? (Try using a tool)
+
+---
+
+### 14. Sender ID Validation Prevents Data Corruption
+**Problem:** Corrupted sender IDs stored in Supabase (`ssanhub_url=https://...`).
+
+**Root Cause:** Missing newline in `.env` file caused variable concatenation.
+
+**Fix Applied:** Added validation in `sendMessage()`:
+```typescript
+const AGENT_ID_PATTERN = /^[a-z0-9_-]{2,20}$/;
+if (!AGENT_ID_PATTERN.test(sender) || sender.includes('=')) {
+  throw new Error(`Invalid sender: "${sender}"`);
+}
+```
+
+**Lesson:** Validate ALL input at the storage layer, not just the API layer. Bad data in the database causes cascading failures (can't reply, can't filter, trust issues).
+
+---
+
+### 15. Use `npx -yq` Not `npx -y` for MCP Servers
+**Problem:** npx-based MCP servers writing to stdout during install, breaking JSON-RPC protocol.
+
+**Symptom:** EOF / Initialize errors in Antigravity.
+
+**Fix:** Use `-yq` flag (quiet mode) instead of just `-y`:
+```json
+{
+  "command": "npx",
+  "args": ["-yq", "@some/mcp-server"]
+}
+```
+
+**Lesson:** MCP servers MUST NOT write to stdout (reserved for JSON-RPC). Use stderr for all logging.
+
+---
+
+### 16. Always Log MCP Tool Failures
+**Problem:** "Agent execution terminated due to an error" with no details about what failed.
+
+**Impact:** Debugging blind - no idea what tool was called or what error occurred.
+
+**Proposed Pattern:**
+```typescript
+try {
+  const result = await mcpTool(args);
+} catch (err) {
+  console.error(`MCP tool failed: ${toolName}`, { args, error: err.message });
+  throw err;  // Re-throw with context
+}
+```
+
+**Lesson:** Every MCP call should be wrapped with logging. Silent failures are debugging nightmares (see Lesson #2).
+
+---
+
+### 17. Zombie MCP Processes Degrade Performance
+**Problem:** Multiple MCP processes spawned on each Antigravity window/restart, old ones linger.
+
+**Symptom:** High CPU usage, port conflicts, confusion about "which MCP is the real one."
+
+**Fix:** 
+```bash
+# Clean up zombies
+spidersan mcp-health --kill-zombies
+
+# Or brute force
+pkill -f mcp-server
+```
+
+**Lesson:** After any Antigravity restart or debugging session, check for zombies with `ps aux | grep mcp`.
+
+---
+
+### 18. Keep MCP Tool Responses Under 50KB
+**Problem:** Large responses (e.g., `grep` returning 1000+ lines) crash Antigravity.
+
+**Symptom:** Timeout, agent termination, or memory issues.
+
+**Fix:** Add explicit limits in tool responses:
+```typescript
+const MAX_RESPONSE_SIZE = 50000;  // 50KB
+if (result.length > MAX_RESPONSE_SIZE) {
+  return result.slice(0, MAX_RESPONSE_SIZE) + '\n... [truncated]';
+}
+```
+
+**Lesson:** MCP tools should be defensive about response size. Trust that the caller can paginate or request more.
+
+---
+
+### 19. Pre-Flight Checklist for New MCP Servers
+Before deploying any new MCP server:
+
+- [ ] Use absolute path for dotenv loading (Lesson #5)
+- [ ] Verify entry point matches transpiled output
+- [ ] Test with `spidersan mcp-health`
+- [ ] Check logs: `~/Library/Logs/Claude/mcp.log`
+- [ ] Add response size limits to all tools
+- [ ] Use `npx -yq` for npx-based servers (Lesson #15)
+- [ ] Add input validation for all tool parameters
+
+**Lesson:** MCP development has many silent failure modes. A checklist prevents repeating mistakes.
+
