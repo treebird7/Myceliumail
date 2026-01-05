@@ -81,6 +81,14 @@ async function supabaseRequest<T>(path: string, options: RequestInit = {}): Prom
     return response.json() as Promise<T>;
 }
 
+// Agent ID validation (inline for MCP - no access to CLI lib)
+const AGENT_ID_PATTERN = /^[a-z0-9_-]{2,20}$/;
+function validateAgentId(id: string, fieldName: string = 'agent_id'): void {
+    if (!id || !AGENT_ID_PATTERN.test(id) || id.includes('=') || id.includes('://')) {
+        throw new Error(`Invalid ${fieldName}: "${id}" — must be 2-20 lowercase alphanumeric chars`);
+    }
+}
+
 export async function sendMessage(
     sender: string,
     recipient: string,
@@ -93,6 +101,9 @@ export async function sendMessage(
         senderPublicKey?: string;
     }
 ): Promise<Message> {
+    // Validate sender and recipient before storing
+    validateAgentId(sender, 'sender');
+    validateAgentId(recipient, 'recipient');
     const newMessage: StoredMessage = {
         id: randomUUID(),
         sender,

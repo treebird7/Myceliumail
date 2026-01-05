@@ -8,6 +8,7 @@
 import { loadConfig, hasSupabaseConfig } from '../lib/config.js';
 import type { Message, InboxOptions } from '../types/index.js';
 import * as local from './local.js';
+import { validateAgentId } from '../lib/validation.js';
 
 // Simple fetch-based Supabase client (no dependencies)
 interface SupabaseClient {
@@ -97,6 +98,11 @@ export async function sendMessage(
         attachments?: { name: string; type: string; data: string; size: number }[];
     }
 ): Promise<Message> {
+    // Validate sender and recipient IDs before storing
+    validateAgentId(sender, 'sender');
+    const recipients = Array.isArray(recipient) ? recipient : [recipient];
+    recipients.forEach(r => validateAgentId(r, 'recipient'));
+
     const client = createClient();
 
     // Fall back to local if no Supabase
