@@ -2,17 +2,21 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, getInbox, getAgentKeys, Message } from '@/lib/supabase';
+import { useHub, HubStatus } from '@/lib/hub';
 import MessageCard from '@/components/MessageCard';
 import Link from 'next/link';
 
 // Default agents if we can't fetch from agent_keys
-const DEFAULT_AGENTS = ['treebird', 'wsan', 'ssan', 'mycm', 'antigravity'];
+const DEFAULT_AGENTS = ['treebird', 'wsan', 'ssan', 'mycm', 'bsan', 'arti'];
 
 export default function InboxPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [agents, setAgents] = useState<string[]>(DEFAULT_AGENTS);
   const [error, setError] = useState<string | null>(null);
+
+  // Connect to Hub for real-time messages
+  const { status: hubStatus, lastMessage: hubMessage } = useHub(agents);
 
   const loadInbox = useCallback(async () => {
     try {
@@ -32,10 +36,28 @@ export default function InboxPage() {
     }
   }, []);
 
+  // Handle Hub real-time messages
+  useEffect(() => {
+    if (hubMessage && agents.includes(hubMessage.recipient)) {
+      // Add new message to top of list if it's for one of our agents
+      const newMsg: Message = {
+        id: 'hub-' + Date.now(),
+        from_agent: hubMessage.sender,
+        to_agent: hubMessage.recipient,
+        subject: hubMessage.subject,
+        message: hubMessage.body || '',
+        encrypted: false,
+        read: false,
+        created_at: hubMessage.timestamp
+      };
+      setMessages(prev => [newMsg, ...prev.filter(m => m.id !== newMsg.id)]);
+    }
+  }, [hubMessage, agents]);
+
   useEffect(() => {
     loadInbox();
 
-    // Set up real-time subscription
+    // Set up Supabase real-time subscription
     const channel = supabase
       .channel('mobile-inbox')
       .on(
@@ -88,12 +110,15 @@ export default function InboxPage() {
             </Link>
           </div>
         </div>
-        <div className="mt-2 text-sm text-gray-400">
-          {unreadCount > 0 ? (
-            <span className="text-blue-400">{unreadCount} unread</span>
-          ) : (
-            <span>No unread messages</span>
-          )} · {messages.length} total
+        <div className="mt-2 flex items-center justify-between text-sm text-gray-400">
+          <div>
+            {unreadCount > 0 ? (
+              <span className="text-blue-400">{unreadCount} unread</span>
+            ) : (
+              <span>No unread messages</span>
+            )} · {messages.length} total
+          </div>
+          <HubStatus status={hubStatus} />
         </div>
       </header>
 

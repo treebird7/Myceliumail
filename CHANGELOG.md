@@ -24,6 +24,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Performance**: Added 30-second in-memory cache for message lookups
 - **CLAUDE.md**: Updated with production Hub URL (`https://hub.treebird.uk`)
 
+## [1.2.0] - 2026-01-06
+
+### Added
+- **Sender ID Validation** - Prevents corrupted sender IDs from reaching database
+  - Validates IDs match pattern: `/^[a-z0-9_-]{2,20}$/`
+  - Rejects IDs containing `=`, `://`, or `http`
+  - Applied to both CLI storage and MCP server
+- **New CLI Commands**
+  - `mycmail claim <task-id>` - Claim collab tasks
+  - `mycmail complete <task-id>` - Mark tasks as done
+  - `mycmail receipt <message-id>` - Check delivery receipts
+  - `mycmail hub-status` - Check Hub connectivity
+- **Mobile App Hub Integration** (mobile-app/)
+  - WebSocket connection to Treebird Hub for real-time messages
+  - Hub status indicator in inbox header
+  - Sender ID validation synced with CLI
+  - Hub API fallback for message sending
+  - PWA manifest for "Add to Home Screen"
+
+### Fixed
+- **dotenv CWD Issue** - MCP server now loads .env relative to script location, not current working directory. Fixes silent env loading failures when spawned by Antigravity.
+- **Shell Quoting Bug** - Fixed shell variable concatenation that caused sender IDs like `ssanhub_url=https://...`
+
+### Changed
+- Mobile app updated agents list to include treebird ecosystem agents
+
 ## [1.1.1] - 2025-12-28
 
 ### Added

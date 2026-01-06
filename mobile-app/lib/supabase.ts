@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 // Supabase configuration - using the same credentials as mycmail
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ruvwundetxnzesrbkdzr.supabase.co';
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const HUB_URL = process.env.NEXT_PUBLIC_HUB_URL || 'https://hub.treebird.uk';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     realtime: {
@@ -19,6 +20,16 @@ export interface Message {
     encrypted: boolean;
     read: boolean;
     created_at: string;
+}
+
+// Sender ID validation (synced with CLI validation.ts)
+const AGENT_ID_PATTERN = /^[a-z0-9_-]{2,20}$/;
+
+export function isValidAgentId(id: string): boolean {
+    if (!id || typeof id !== 'string') return false;
+    if (!AGENT_ID_PATTERN.test(id)) return false;
+    if (id.includes('=') || id.includes('://') || id.includes('http')) return false;
+    return true;
 }
 
 export async function getInbox(agentIds: string[], limit = 50): Promise<Message[]> {
@@ -43,6 +54,43 @@ export async function sendMessage(
     subject: string,
     body: string
 ): Promise<Message | null> {
+    // Validate sender and recipient IDs
+    if (!isValidAgentId(from)) {
+        console.error(`Invalid sender ID: "${from}"`);
+        return null;
+    }
+    if (!isValidAgentId(to)) {
+        console.error(`Invalid recipient ID: "${to}"`);
+        return null;
+    }
+
+    // Try Hub API first (for real-time delivery)
+    try {
+        const hubResponse = await fetch(`${HUB_URL}/api/send/${to}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender: from, subject, body }),
+            signal: AbortSignal.timeout(3000)
+        });
+
+        if (hubResponse.ok) {
+            const result = await hubResponse.json() as { id: string };
+            return {
+                id: result.id,
+                from_agent: from,
+                to_agent: to,
+                subject,
+                message: body,
+                encrypted: false,
+                read: false,
+                created_at: new Date().toISOString()
+            };
+        }
+    } catch (err) {
+        console.warn('Hub unavailable, falling back to Supabase:', err);
+    }
+
+    // Fallback to Supabase direct insert
     const { data, error } = await supabase
         .from('agent_messages')
         .insert({
@@ -85,3 +133,4 @@ export async function getAgentKeys(): Promise<string[]> {
 
     return data.map(row => row.agent_id);
 }
+
