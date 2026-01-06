@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.0] - 2026-01-06
 
+### 🎉 Mycmail is Now FREE!
+- **No more Pro license required** — All features unlocked for everyone
+- **Unlimited imported keys** — Previously limited to 5 on free tier
+- **MCP server access** — Previously required Pro license
+- **No upsells** — Clean, distraction-free experience
+
 ### Added
 - **Sender ID Validation** - Prevents corrupted sender IDs from reaching database
   - Validates IDs match pattern: `/^[a-z0-9_-]{2,20}$/`

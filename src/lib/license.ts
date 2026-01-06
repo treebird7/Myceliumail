@@ -133,22 +133,22 @@ export function loadLicense(): License | null {
 
 /**
  * Check if user has a valid Pro license
+ * 
+ * @note As of v1.2.0, mycmail is FREE! This always returns true.
  */
 export function isPro(): boolean {
-    const license = loadLicense();
-    if (!license) return false;
-    if (!license.isValid) return false;
-    if (license.isExpired) return false;
-    return license.data.plan === 'pro';
+    // v1.2.0: Mycmail is now free! All features unlocked for everyone.
+    return true;
 }
 
 /**
  * Check if a specific Pro feature is enabled
+ * 
+ * @note As of v1.2.0, all features are free!
  */
-export function hasFeature(feature: ProFeature): boolean {
-    const license = loadLicense();
-    if (!license || !license.isValid || license.isExpired) return false;
-    return license.data.features.includes(feature);
+export function hasFeature(_feature: ProFeature): boolean {
+    // v1.2.0: All features are free!
+    return true;
 }
 
 /**
@@ -161,55 +161,30 @@ export function getLicenseStatus(): {
     features: ProFeature[];
     daysRemaining?: number;
 } {
-    const license = loadLicense();
-
-    if (!license || !license.isValid || license.isExpired) {
-        return {
-            plan: 'free',
-            features: [],
-        };
-    }
-
-    const expiresAt = new Date(license.data.expiresAt);
-    const now = new Date();
-    const daysRemaining = Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
+    // v1.2.0: Everyone is Pro now!
     return {
-        plan: license.data.plan,
-        email: license.data.email,
-        expiresAt: license.data.expiresAt,
-        features: license.data.features,
-        daysRemaining,
+        plan: 'pro',
+        features: ['unlimited_keys', 'mcp_server', 'cloud_sync', 'key_backup', 'realtime_watch'],
+        daysRemaining: 9999,
     };
 }
 
 /**
  * Check imported key limit and throw if exceeded (for free tier)
+ * 
+ * @note As of v1.2.0, there are no limits! This is a no-op.
  */
 export function checkKeyLimit(): void {
-    if (isPro()) return; // Pro has unlimited
-
-    const knownKeys = loadKnownKeys();
-    const keyCount = Object.keys(knownKeys).length;
-
-    if (keyCount >= FREE_TIER_LIMITS.maxImportedKeys) {
-        console.error(`\n🍄 Free tier limit reached: ${keyCount}/${FREE_TIER_LIMITS.maxImportedKeys} imported keys`);
-        console.error('');
-        console.error('   Options:');
-        console.error('   • Remove unused keys from ~/.myceliumail/keys/known_keys.json');
-        console.error('   • Upgrade: myceliumail.dev/pro for unlimited keys');
-        console.error('');
-        process.exit(1);
-    }
+    // v1.2.0: No limits! Everyone gets unlimited keys.
+    return;
 }
 
 /**
  * Print Pro upsell message (soft sell)
+ * 
+ * @note As of v1.2.0, no upsells - it's free!
  */
-export function printProUpsell(feature: string): void {
-    if (isPro()) return;
-
-    console.log('');
-    console.log(`💎 Pro tip: Upgrade for ${feature}`);
-    console.log('   myceliumail.dev/pro');
+export function printProUpsell(_feature: string): void {
+    // v1.2.0: No upsells - mycmail is free!
+    return;
 }

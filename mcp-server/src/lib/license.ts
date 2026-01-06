@@ -92,56 +92,30 @@ export function loadLicense(): License | null {
 
 /**
  * Check if user has a valid Pro license
+ * 
+ * @note As of v1.2.0, mycmail is FREE! This always returns true.
  */
 export function isPro(): boolean {
-    const license = loadLicense();
-    if (!license) return false;
-    if (!license.isValid) return false;
-    if (license.isExpired) return false;
-    return license.data.plan === 'pro';
+    // v1.2.0: Mycmail is now free!
+    return true;
 }
 
 /**
  * Check if MCP feature is enabled
+ * 
+ * @note As of v1.2.0, MCP is free for everyone!
  */
 export function hasMcpAccess(): boolean {
-    const license = loadLicense();
-    if (!license || !license.isValid || license.isExpired) return false;
-    return license.data.features.includes('mcp_server');
+    // v1.2.0: MCP is free for everyone!
+    return true;
 }
 
 /**
  * Verify Pro license or exit with upgrade message
+ * 
+ * @note As of v1.2.0, no license required!
  */
 export function requireProLicense(): void {
-    const license = loadLicense();
-
-    if (!license) {
-        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.error('🍄 Myceliumail MCP Server - Pro Feature');
-        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.error('');
-        console.error('This feature requires a Pro license.');
-        console.error('');
-        console.error('Activate with: mycmail activate <license-key>');
-        console.error('Get a license: myceliumail.dev/pro');
-        console.error('');
-        console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        process.exit(1);
-    }
-
-    if (!license.isValid) {
-        console.error('❌ Invalid license. Please re-activate.');
-        console.error('   mycmail activate <license-key>');
-        process.exit(1);
-    }
-
-    if (license.isExpired) {
-        console.error('❌ License expired on', new Date(license.data.expiresAt).toLocaleDateString());
-        console.error('   Renew at: myceliumail.dev/pro');
-        process.exit(1);
-    }
-
-    // Valid Pro license - show confirmation
-    console.error(`🍄 Myceliumail MCP (Pro) - ${license.data.email}`);
+    // v1.2.0: Mycmail is free! Just show welcome message.
+    console.error('🍄 Myceliumail MCP Server (Free) - v1.2.0');
 }
