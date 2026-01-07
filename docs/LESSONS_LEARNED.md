@@ -394,3 +394,51 @@ try {
 
 **Lesson:** Any TypeScript file with JSX/TSX syntax must use `.tsx` extension.
 
+---
+
+### 22. npm audit Before Publishing (Jan 7, 2026)
+**Problem:** Envault shipped with HIGH severity vulnerability in `@modelcontextprotocol/sdk` v1.25.1.
+
+**Symptom:** `npm audit` found ReDoS vulnerability (GHSA-8r9q-7v3j-jr4g).
+
+**Fix:** Run `npm audit fix` before any release. Updated to v1.25.2+.
+
+**Lesson:** Add `npm audit` to your publishing checklist. Dependency vulnerabilities are easily missed during development but critical for production.
+
+---
+
+### 23. MCP Path Traversal Protection (Jan 7, 2026)
+**Problem:** MCP tools accepting file paths could access any file on the system.
+
+**Risk:** Agent (or malicious prompt) could instruct MCP to read/write files outside project.
+
+**Fix Applied in Envault:**
+```typescript
+function validatePathWithinCwd(filePath: string): string {
+    const cwd = process.cwd();
+    const fullPath = path.resolve(filePath);
+    if (!fullPath.startsWith(cwd + path.sep) && fullPath !== cwd) {
+        throw new Error(`Security: Path must be within current directory`);
+    }
+    return fullPath;
+}
+```
+
+**Lesson:** Any MCP tool that accepts file paths MUST validate they're within an allowed directory. Defense in depth against prompt injection attacks.
+
+---
+
+### 24. Strategy Doc as Session Handoff (Jan 7, 2026)
+**Problem:** Multi-session work loses context and decisions.
+
+**Pattern Used:**
+1. Save strategy doc to `/docs/TREEBIRD_API_KEY_STRATEGY.md`
+2. Broadcast summary to flock via mycmail
+3. Add lessons to LESSONS_LEARNED.md
+4. Commit and push immediately
+
+**Lesson:** Future agents can find context in three places:
+- Mycmail inbox (for recent sessions)
+- docs/ folder (for strategy docs)
+- LESSONS_LEARNED.md (for patterns)
+
