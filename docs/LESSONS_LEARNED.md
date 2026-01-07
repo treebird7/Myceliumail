@@ -361,3 +361,36 @@ Before deploying any new MCP server:
 
 **Lesson:** MCP development has many silent failure modes. A checklist prevents repeating mistakes.
 
+
+### 20. Hub API Fallback Pattern (Jan 7, 2026)
+**Problem:** Mobile app needed reliable message sending when Hub might be unavailable.
+
+**Solution:** Try Hub first with timeout, fall back to Supabase:
+```typescript
+try {
+    const hubResponse = await fetch(`${HUB_URL}/api/send/${to}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: from, subject, body }),
+        signal: AbortSignal.timeout(3000)  // 3s timeout
+    });
+    if (hubResponse.ok) return result;
+} catch (err) {
+    console.warn('Hub unavailable, falling back to Supabase:', err);
+}
+// Fall through to Supabase insert
+```
+
+**Lesson:** Always have a fallback for network-dependent features. Use timeouts to fail fast.
+
+---
+
+### 21. JSX Requires .tsx Extension (Jan 7, 2026)
+**Problem:** Build failed when React component was in `.ts` file.
+
+**Symptom:** `Parsing ecmascript source code failed` with "Expected '>'" errors.
+
+**Fix:** Rename `hub.ts` to `hub.tsx` when file contains JSX.
+
+**Lesson:** Any TypeScript file with JSX/TSX syntax must use `.tsx` extension.
+
