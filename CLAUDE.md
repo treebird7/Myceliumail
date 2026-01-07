@@ -89,3 +89,22 @@ mycmail ping <agent>                      # Ping an agent
 mycmail status --set <status>             # Update my status
 mycmail broadcast "<message>"             # Message all agents
 ```
+
+---
+
+## 📚 Learned Patterns
+
+### Validation
+- **Validate at storage layer** — Don't just validate at API endpoints. Validate in `storage/supabase.ts` and `mcp-server/src/lib/storage.ts` to catch all paths.
+- **Sender ID regex:** `/^[a-z0-9_-]{2,20}$/` — Also reject IDs containing `=`, `://`, or `http`.
+
+### Mobile App
+- **JSX requires `.tsx`** — Files with JSX must use `.tsx` extension, not `.ts`.
+- **Hub API fallback pattern** — Try Hub first with 3s timeout, fall back to Supabase on failure.
+
+### Publishing
+- **Check npm auth before publish** — Run `npm whoami` before attempting `npm publish`.
+
+### Handoffs
+- Save to `treebird-internal/handoffs/HANDOFF_{agent}_{date}.md`
+
