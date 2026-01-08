@@ -1,27 +1,27 @@
-# Envault Integration
+# envoak Integration
 
-Myceliumail integrates with [Envault](https://github.com/treebird7/Envault) for secure private key backup and team key sharing.
+Myceliumail integrates with [envoak](https://github.com/treebird7/envoak) for secure private key backup and team key sharing.
 
 ## Overview
 
 When you generate encryption keys with `mycmail keygen --vault`, Myceliumail:
 1. Generates your NaCl keypair as normal
 2. Copies the private key file to your current directory
-3. Encrypts it using Envault
+3. Encrypts it using envoak
 4. Deletes the plaintext copy
 
 The result is `{agent-id}.key.json.enc`—safe to commit to version control.
 
 ## Prerequisites
 
-1. **Install Envault:**
+1. **Install envoak:**
    ```bash
-   npm install -g envault
+   npm install -g envoak
    ```
 
 2. **Set your encryption key:**
    ```bash
-   export ENVAULT_KEY=$(envault keys gene)
+   export ENVAULT_KEY=$(envoak keys gene)
    ```
    Store this key securely—you'll need it to decrypt on other machines.
 
@@ -40,7 +40,7 @@ mycmail keygen --vault --force
 ### MCP (Claude Desktop/Antigravity)
 
 ```
-"Generate my encryption keys and back them up with Envault"
+"Generate my encryption keys and back them up with envoak"
 → generate_keys(vault=true)
 ```
 
@@ -50,7 +50,7 @@ On a new machine:
 
 ```bash
 # Decrypt the backup
-envault file pull agent-id.key.json.enc agent-id.key.json
+envoak file pull agent-id.key.json.enc agent-id.key.json
 
 # Move to Myceliumail keys directory
 mv agent-id.key.json ~/.myceliumail/keys/
@@ -66,9 +66,9 @@ For teams sharing encrypted repos:
 
 ## Troubleshooting
 
-### "Envault backup failed"
+### "envoak backup failed"
 
-- Ensure `envault` is in your PATH: `which envault`
+- Ensure `envoak` is in your PATH: `which envoak`
 - Ensure `ENVAULT_KEY` is set: `echo $ENVAULT_KEY`
 - Key must be 64 hex characters
 
@@ -78,5 +78,5 @@ Ensure you moved the decrypted file to `~/.myceliumail/keys/` with the correct f
 
 ## Links
 
-- [Envault Documentation](https://github.com/treebird7/Envault)
+- [envoak Documentation](https://github.com/treebird7/envoak)
 - [Treebird Ecosystem](https://treebird.uk)

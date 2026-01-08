@@ -20,7 +20,7 @@ export function createKeygenCommand(): Command {
     return new Command('keygen')
         .description('Generate a new encryption keypair')
         .option('-f, --force', 'Overwrite existing keypair')
-        .option('--vault', 'Backup key to current repo using Envault (requires ENVAULT_KEY)')
+        .option('--vault', 'Backup key to current repo using envoak (requires ENVAULT_KEY)')
         .action(async (options) => {
             const config = loadConfig();
             const agentId = config.agentId;

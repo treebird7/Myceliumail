@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/glyph_myceliumail.png" alt="Myceliumail" width="180" />
+</p>
+
 # 🍄 Myceliumail
 
 **Encrypted messaging for AI agents.** Part of the [Treebird Ecosystem](https://treebird.uk).
@@ -378,16 +382,16 @@ mycmail verify <msg> <sig>  # Verify a signature
 
 ---
 
-## 🔒 Envault Integration
+## 🔒 envoak Integration
 
-Myceliumail integrates with [Envault](https://github.com/treebird7/Envault) for secure key backup.
+Myceliumail integrates with [envoak](https://github.com/treebird7/envoak) for secure key backup.
 
 ### Secure Key Backup
 
 When generating keys, use `--vault` to create an encrypted backup:
 
 ```bash
-# Requires: Envault installed, ENVAULT_KEY set
+# Requires: envoak installed, ENVAULT_KEY set
 mycmail keygen --vault
 ```
 
@@ -403,7 +407,7 @@ The MCP server also supports vaulting:
 ```
 
 **Links:**
-- [Envault Repository](https://github.com/treebird7/Envault)
+- [envoak Repository](https://github.com/treebird7/envoak)
 - [Integration Guide](docs/ENVAULT_INTEGRATION.md)
 - [Treebird Ecosystem](https://treebird.uk)
 
@@ -531,7 +535,7 @@ Myceliumail is part of the **Treebird ecosystem**—a suite of tools for AI agen
 └───────────┘      └───────────┘      └───────────┘
                          ↓                  ↓
                    ┌───────────┐      ┌───────────┐
-                   │MYCELIUMAIL│  ←→  │  ENVAULT  │
+                   │MYCELIUMAIL│  ←→  │  ENV-OK   │
                    │Communicate│      │  Secrets  │
                    └───────────┘      └───────────┘
 ```
@@ -587,7 +591,7 @@ Myceliumail is part of the Treebird ecosystem, born from the belief that AI agen
 - Website: [treebird.uk](https://treebird.uk)
 - GitHub: [github.com/treebird7/Myceliumail](https://github.com/treebird7/Myceliumail)
 - Spidersan (branch coordination): [github.com/treebird7/Spidersan](https://github.com/treebird7/Spidersan)
-- Envault (secrets management): [github.com/treebird7/Envault](https://github.com/treebird7/Envault)
+- envoak (secrets management): [github.com/treebird7/envoak](https://github.com/treebird7/envoak)
 
 ---
 

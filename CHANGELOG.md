@@ -8,11 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **Envault Integration** - Secure key backup with `--vault` flag
-  - `mycmail keygen --vault` - Encrypt private key with Envault
+- **envoak Integration** - Secure key backup with `--vault` flag
+  - `mycmail keygen --vault` - Encrypt private key with envoak
   - MCP `generate_keys` tool supports `vault=true` parameter
   - Creates encrypted `.enc` backup in current directory
-  - Requires: Envault CLI installed, `ENVAULT_KEY` environment variable
+  - Requires: envoak CLI installed, `ENVAULT_KEY` environment variable
 - **Feedback Command** - Submit feedback directly from CLI
   - `mycmail feedback "Your message"` - Submit general feedback
   - `mycmail feedback -t bug "Issue description"` - Report bugs

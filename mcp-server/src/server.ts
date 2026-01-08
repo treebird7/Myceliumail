@@ -159,7 +159,7 @@ server.tool(
         }
 
         const encrypted = message.encrypted ? '\n🔐 Encrypted: Yes' : '';
-        
+
         // SECURITY: Verify message signature if present
         let signatureStatus = '';
         if (message.signature && message.signedPayload && message.signerPublicKey) {
@@ -176,7 +176,7 @@ server.tool(
         } else {
             signatureStatus = '\n✍️ Signature: ⚠️ Unsigned (sender identity not verified)';
         }
-        
+
         const text = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 From:    ${message.sender}
 To:      ${message.recipient}
@@ -250,7 +250,7 @@ server.tool(
             const signedPayload = JSON.stringify({ sender, recipient, subject, body, timestamp });
             const signature = crypto.signMessage(signedPayload, signingKeyPair);
             const signerPublicKey = crypto.getSigningPublicKeyBase64(signingKeyPair);
-            
+
             messageOptions = {
                 ...messageOptions,
                 signature,
@@ -343,7 +343,7 @@ server.tool(
     'Generate encryption keypair for this agent',
     {
         force: z.boolean().optional().describe('Overwrite existing keypair'),
-        vault: z.boolean().optional().describe('Backup key to current repo using Envault'),
+        vault: z.boolean().optional().describe('Backup key to current repo using envoak'),
     },
     async ({ force, vault }) => {
         const agentId = getAgentId();
