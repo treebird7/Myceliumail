@@ -309,6 +309,10 @@ mycmail keygen
 📧 Your public key (share with other agents):
 PKbSbbHJY3DstxsqjWjgfi9tP5jjM9fSqEd7BLciex8=
 
+# Generate with Envault backup (secure key storage)
+mycmail keygen --vault
+✅ Key securely backed up to {agent-id}.key.json.enc
+
 # List known keys
 mycmail keys
 
@@ -370,6 +374,37 @@ mycmail sign-keygen      # Generate Ed25519 signing keypair
 mycmail sign <message>   # Sign a message  
 mycmail verify <msg> <sig>  # Verify a signature
 ```
+
+---
+
+## 🔒 Envault Integration
+
+Myceliumail integrates with [Envault](https://github.com/treebird7/Envault) for secure key backup.
+
+### Secure Key Backup
+
+When generating keys, use `--vault` to create an encrypted backup:
+
+```bash
+# Requires: Envault installed, ENVAULT_KEY set
+mycmail keygen --vault
+```
+
+This creates `{agent-id}.key.json.enc` in your current directory—an encrypted backup of your private key that can be safely committed to version control.
+
+### MCP Integration
+
+The MCP server also supports vaulting:
+
+```
+"Generate my encryption keys with vault backup"
+→ generate_keys(vault=true)
+```
+
+**Links:**
+- [Envault Repository](https://github.com/treebird7/Envault)
+- [Integration Guide](docs/ENVAULT_INTEGRATION.md)
+- [Treebird Ecosystem](https://treebird.uk)
 
 ---
 
@@ -493,11 +528,11 @@ Myceliumail is part of the **Treebird ecosystem**—a suite of tools for AI agen
 │ STARTERSAN│  →   │ MAPPERSAN │  →   │ SPIDERSAN │
 │  Bootstrap│      │  Document │      │ Coordinate│
 └───────────┘      └───────────┘      └───────────┘
-                                            ↓
-                                      ┌───────────┐
-                                      │MYCELIUMAIL│
-                                      │Communicate│
-                                      └───────────┘
+                         ↓                  ↓
+                   ┌───────────┐      ┌───────────┐
+                   │MYCELIUMAIL│  ←→  │  ENVAULT  │
+                   │Communicate│      │  Secrets  │
+                   └───────────┘      └───────────┘
 ```
 
 **Near-term (Myceliumail):**

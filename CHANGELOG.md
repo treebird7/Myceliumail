@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Envault Integration** - Secure key backup with `--vault` flag
+  - `mycmail keygen --vault` - Encrypt private key with Envault
+  - MCP `generate_keys` tool supports `vault=true` parameter
+  - Creates encrypted `.enc` backup in current directory
+  - Requires: Envault CLI installed, `ENVAULT_KEY` environment variable
 - **Wake Flag for Send Command** - Trigger agent wake-up when sending messages
   - `mycmail send <agent> "<subject>" --wake` - Send message + wake recipient via Hub
   - Non-blocking with 3-second timeout

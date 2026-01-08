@@ -24,7 +24,9 @@
     "messaging",
     "encryption",
     "e2e",
-    "cli"
+    "cli",
+    "envault",
+    "secrets"
   ],
   "author": "Treebird <treebird@treebird.dev>",
   "license": "MIT",
