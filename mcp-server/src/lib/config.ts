@@ -60,6 +60,11 @@ export function getSupabaseKey(): string | undefined {
     return process.env.SUPABASE_ANON_KEY || loadFileConfig().supabase_key;
 }
 
+export function getStorageMode(): 'auto' | 'local' | 'supabase' {
+    return (process.env.MYCELIUMAIL_STORAGE as 'auto' | 'local' | 'supabase') || 'auto';
+}
+
 export function hasSupabase(): boolean {
+    if (getStorageMode() === 'local') return false;
     return !!(getSupabaseUrl() && getSupabaseKey());
 }

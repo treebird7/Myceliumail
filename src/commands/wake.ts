@@ -219,22 +219,29 @@ export function createWakeCommand(): Command {
                     }
                 }
 
-                // Connect to Hub WebSocket (if configured)
-                // Sprint 3 - WS-003: Agent WebSocket Client
+                // Send heartbeat to Hub (HTTP, not WebSocket)
+                // WebSocket connections keep process alive - not suitable for wake command
                 if (config.hubUrl && !options.silent) {
                     try {
-                        const hubClient = await connectOnWake(agentId, {
-                            onWake: (payload) => {
-                                console.log(`\n🔔 Wake signal from ${payload.sender || 'Hub'}: ${payload.message || payload.reason}`);
-                            },
-                            onDisconnect: (reason) => {
-                                if (!options.quiet) {
-                                    console.log(`📡 Hub disconnected: ${reason}`);
-                                }
-                            }
+                        const hubUrl = config.hubUrl;
+                        const authToken = process.env.BRIDGE_AUTH_TOKEN || '';
+
+                        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                        if (authToken) headers['X-Auth-Token'] = authToken;
+
+                        const response = await fetch(`${hubUrl}/api/heartbeat/${agentId}`, {
+                            method: 'POST',
+                            headers,
+                            body: JSON.stringify({
+                                status: 'online',
+                                task: 'Agent wake',
+                                timestamp: new Date().toISOString()
+                            }),
+                            signal: AbortSignal.timeout(5000) // 5s timeout
                         });
-                        if (hubClient && !options.quiet) {
-                            console.log('📡 Connected to Hub (WebSocket)');
+
+                        if (response.ok && !options.quiet) {
+                            console.log('📡 Heartbeat sent to Hub');
                         }
                     } catch {
                         // Silent fail - Hub is optional
