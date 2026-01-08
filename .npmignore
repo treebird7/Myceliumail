@@ -1,0 +1,57 @@
+# Private/sensitive files
+.env
+.env.local
+.env.*.local
+config.enc
+*.enc
+
+# IDE and agent internal files
+.claude/
+.mappersan/
+.spidersan/
+.vscode/
+.idea/
+
+# Development files not needed in package
+PUBLISHING_CHECKLIST.md
+PR_DESCRIPTION.md
+READY_TO_SHIP.md
+RELEASE_NOTES_*.md
+ANNOUNCEMENT.md
+CODEX_SETUP.md
+Myceliumail.code-workspace
+.context7
+
+# Desktop app (separate package)
+desktop/
+
+# Mobile app (separate package)
+mobile-app/
+
+# MCP server (published as separate package)
+mcp-server/
+
+# VSCode extension (separate package)
+vscode-extension/
+
+# Development tooling
+tools/
+supabase/
+
+# Test files
+*.test.ts
+*.test.js
+__tests__/
+coverage/
+
+# Git files
+.git/
+.github/
+
+# Symlinks
+treebird-internal
+myceliumail
+
+# OS files
+.DS_Store
+Thumbs.db

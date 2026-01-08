@@ -33,3 +33,4 @@ coverage/
 .nyc_output/
 node_modules
 treebird-internal
+config.enc
