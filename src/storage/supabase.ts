@@ -511,3 +511,30 @@ export async function deleteMessage(id: string): Promise<boolean> {
         return false;
     }
 }
+
+/**
+ * Submit feedback to Supabase
+ */
+export async function submitFeedback(feedback: {
+    type: string;
+    message: string;
+    agent_id?: string;
+    tool: string;
+    version?: string;
+    platform?: string;
+    email?: string;
+}): Promise<{ id: string }> {
+    const client = createClient();
+
+    if (!client) {
+        throw new Error('Supabase not configured. Cannot submit feedback.');
+    }
+
+    const [result] = await supabaseRequest<Array<{ id: string }>>(client, '/feedback', {
+        method: 'POST',
+        body: JSON.stringify(feedback),
+    });
+
+    return result;
+}
+

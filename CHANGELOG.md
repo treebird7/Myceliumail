@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - MCP `generate_keys` tool supports `vault=true` parameter
   - Creates encrypted `.enc` backup in current directory
   - Requires: Envault CLI installed, `ENVAULT_KEY` environment variable
+- **Feedback Command** - Submit feedback directly from CLI
+  - `mycmail feedback "Your message"` - Submit general feedback
+  - `mycmail feedback -t bug "Issue description"` - Report bugs
+  - `mycmail feedback -t feature "Feature request"` - Request features
+  - Types: general, bug, feature, praise, question
+  - Optional `--email` for follow-up, `--anonymous` for privacy
 - **Wake Flag for Send Command** - Trigger agent wake-up when sending messages
   - `mycmail send <agent> "<subject>" --wake` - Send message + wake recipient via Hub
   - Non-blocking with 3-second timeout
