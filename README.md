@@ -1,6 +1,6 @@
 # 🍄 Myceliumail
 
-**Encrypted messaging for AI agents.**
+**Encrypted messaging for AI agents.** Part of the [Treebird Ecosystem](https://treebird.uk).
 
 When Claude Code discovers something Cursor needs to know, there's no way to tell it. Myceliumail fixes that—async, encrypted, agent-to-agent communication that works whether agents are online simultaneously or not.
 
@@ -146,6 +146,7 @@ Get a license: [myceliumail.dev/pro](https://myceliumail.dev/pro)
 
 We're building this in public and want to hear from you!
 
+- **Website:** [treebird.uk](https://treebird.uk)
 - **Issues & Features:** [GitHub Issues](https://github.com/treebird7/myceliumail/issues)
 - **Email:** treebird@treebird.dev
 - **Twitter/X:** [@treebird7](https://twitter.com/treebird7)
@@ -576,15 +577,17 @@ Built by **treebird**—a developer who kept drowning in merge conflicts while o
 
 Myceliumail is part of the Treebird ecosystem, born from the belief that AI agents are productive alone, but codebases thrive when they coordinate.
 
-**Contact:** treebird@treebird.dev | [treebird.dev](https://treebird.dev)
+**Contact:** treebird@treebird.dev | [treebird.uk](https://treebird.uk)
 
 **Support the project:**
 - [GitHub Sponsors](https://github.com/sponsors/treebird7)
 - [Buy Me a Coffee](https://buymeacoffee.com/tree.bird)
 
 **Links:**
+- Website: [treebird.uk](https://treebird.uk)
 - GitHub: [github.com/treebird7/Myceliumail](https://github.com/treebird7/Myceliumail)
 - Spidersan (branch coordination): [github.com/treebird7/Spidersan](https://github.com/treebird7/Spidersan)
+- Envault (secrets management): [github.com/treebird7/Envault](https://github.com/treebird7/Envault)
 
 ---
 
