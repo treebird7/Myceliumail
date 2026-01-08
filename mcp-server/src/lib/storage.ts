@@ -23,6 +23,9 @@ export interface Message {
     ciphertext?: string;
     nonce?: string;
     senderPublicKey?: string;
+        signature?: string;
+        signedPayload?: string;
+        signerPublicKey?: string;
     read: boolean;
     archived: boolean;
     createdAt: Date;
@@ -69,6 +72,7 @@ async function supabaseRequest<T>(path: string, options: RequestInit = {}): Prom
             'Prefer': options.method === 'POST' ? 'return=representation' : 'return=minimal',
             ...options.headers,
         },
+        signal: options.signal || AbortSignal.timeout(5000), // Default 5s timeout
     });
 
     if (!response.ok) {
@@ -99,6 +103,9 @@ export async function sendMessage(
         ciphertext?: string;
         nonce?: string;
         senderPublicKey?: string;
+        signature?: string;
+        signedPayload?: string;
+        signerPublicKey?: string;
     }
 ): Promise<Message> {
     // Validate sender and recipient before storing
@@ -114,6 +121,9 @@ export async function sendMessage(
         ciphertext: options?.ciphertext,
         nonce: options?.nonce,
         senderPublicKey: options?.senderPublicKey,
+        signature: options?.signature,
+        signedPayload: options?.signedPayload,
+        signerPublicKey: options?.signerPublicKey,
         read: false,
         archived: false,
         createdAt: new Date().toISOString(),

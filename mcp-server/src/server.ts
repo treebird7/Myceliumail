@@ -159,11 +159,29 @@ server.tool(
         }
 
         const encrypted = message.encrypted ? '\n🔐 Encrypted: Yes' : '';
+        
+        // SECURITY: Verify message signature if present
+        let signatureStatus = '';
+        if (message.signature && message.signedPayload && message.signerPublicKey) {
+            try {
+                const isValid = crypto.verifySignature(
+                    message.signedPayload,
+                    message.signature,
+                    message.signerPublicKey
+                );
+                signatureStatus = isValid ? '\n✍️ Signature: ✅ Verified' : '\n✍️ Signature: ❌ INVALID';
+            } catch {
+                signatureStatus = '\n✍️ Signature: ⚠️ Verification failed';
+            }
+        } else {
+            signatureStatus = '\n✍️ Signature: ⚠️ Unsigned (sender identity not verified)';
+        }
+        
         const text = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 From:    ${message.sender}
 To:      ${message.recipient}
 Date:    ${message.createdAt.toLocaleString()}
-Subject: ${subject}${encrypted}
+Subject: ${subject}${encrypted}${signatureStatus}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ${body}
@@ -225,13 +243,30 @@ server.tool(
             };
         }
 
+        // SECURITY: Sign message if we have signing keys
+        const signingKeyPair = crypto.loadSigningKeyPair(sender);
+        if (signingKeyPair) {
+            const timestamp = new Date().toISOString();
+            const signedPayload = JSON.stringify({ sender, recipient, subject, body, timestamp });
+            const signature = crypto.signMessage(signedPayload, signingKeyPair);
+            const signerPublicKey = crypto.getSigningPublicKeyBase64(signingKeyPair);
+            
+            messageOptions = {
+                ...messageOptions,
+                signature,
+                signedPayload,
+                signerPublicKey,
+            };
+        }
+
         try {
             const message = await storage.sendMessage(sender, recipient, subject, body, messageOptions);
+            const signInfo = signingKeyPair ? ' (✍️ signed)' : '';
             const encInfo = encrypt ? ' (🔐 encrypted)' : '';
             return {
                 content: [{
                     type: 'text',
-                    text: `✅ Message sent to ${recipient}${encInfo}\nID: ${message.id}`
+                    text: `✅ Message sent to ${recipient}${signInfo}${encInfo}\nID: ${message.id}`
                 }],
             };
         } catch (error) {
@@ -308,8 +343,9 @@ server.tool(
     'Generate encryption keypair for this agent',
     {
         force: z.boolean().optional().describe('Overwrite existing keypair'),
+        vault: z.boolean().optional().describe('Backup key to current repo using Envault'),
     },
-    async ({ force }) => {
+    async ({ force, vault }) => {
         const agentId = getAgentId();
 
         if (crypto.hasKeyPair(agentId) && !force) {
@@ -325,6 +361,36 @@ server.tool(
             }
         }
 
+        // If vault requested, use CLI to leverage its integration
+        if (vault) {
+            const { execSync } = await import('child_process');
+            try {
+                // Determine CLI path
+                const cliPath = resolve(__dirname, '../../dist/bin/myceliumail.js');
+                const forceFlag = force ? '--force' : '';
+
+                // Execute CLI command: mycmail keygen --vault --force
+                // We use the compiled CLI directly to ensure consistent behavior
+                execSync(`node ${cliPath} keygen --vault ${forceFlag}`, { stdio: 'inherit' });
+
+                // Assuming success (stdio inherited for logs, but we return text here)
+                return {
+                    content: [{
+                        type: 'text',
+                        text: `🔐 Keypair generated and VAULTED for ${agentId}!\n\n✅ Encrypted backup created in current directory.`
+                    }],
+                };
+            } catch (err: any) {
+                return {
+                    content: [{
+                        type: 'text',
+                        text: `❌ Failed to generate/vault keys: ${err.message}`
+                    }],
+                };
+            }
+        }
+
+        // Default behavior (no vault)
         const keyPair = crypto.generateKeyPair();
         crypto.saveKeyPair(agentId, keyPair);
         const publicKey = crypto.getPublicKeyBase64(keyPair);
