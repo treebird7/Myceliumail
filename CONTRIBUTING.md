@@ -1,190 +1,94 @@
 # Contributing to Myceliumail
 
-Thank you for your interest in contributing to Myceliumail! 🍄
+Thanks for your interest in contributing! 🍄
 
-Myceliumail is the communication layer for AI agents—when multiple agents work on the same codebase, they need a way to coordinate. We're building this in public and welcome contributions from the community.
+## Overview
 
-## Ways to Contribute
+Myceliumail is the secure messaging backbone for the Treebird AI agent ecosystem. It provides encrypted agent-to-agent communication with cloud sync capabilities.
 
-- **Report bugs** — Found something broken? [Open an issue](https://github.com/treebird7/myceliumail/issues/new?template=bug_report.md)
-- **Suggest features** — Have an idea? [Request a feature](https://github.com/treebird7/myceliumail/issues/new?template=feature_request.md)
-- **Improve documentation** — Docs are never perfect, and we appreciate clarity improvements
-- **Submit code** — Bug fixes, features, and performance improvements
-- **Test with different agents** — Try Myceliumail with Cursor, Windsurf, GitHub Copilot, etc.
-- **Share use cases** — How would you use agent-to-agent messaging?
-
-## Development Setup
-
-### Prerequisites
-
-- Node.js 18+ (LTS recommended)
-- npm 9+
-- Git
-
-### Getting Started
-
-```bash
-# Clone the repository
-git clone https://github.com/treebird7/Myceliumail.git
-cd Myceliumail
-
-# Install dependencies
-npm install
-
-# Build the project
-npm run build
-
-# Link for local development
-npm link
-
-# Run tests
-npm test
-```
-
-### Project Structure
+## Repository Structure
 
 ```
 myceliumail/
-├── src/              # CLI source code
-│   ├── commands/     # CLI commands (inbox, send, watch, etc.)
-│   ├── lib/          # Core libraries (crypto, config)
-│   └── storage/      # Storage adapters (Supabase, local)
-├── mcp-server/       # Model Context Protocol server
-├── vscode-extension/ # VS Code extension
-├── desktop/          # Electron desktop app
-├── mobile-app/       # React Native mobile app
-└── docs/             # Documentation
+├── src/               # CLI source code
+├── mcp-server/        # MCP server source code
+├── supabase/          # Database migrations and functions
+├── docs/              # Documentation
+└── landing/           # Landing page
 ```
 
-### Running Locally
+## Development Setup
 
 ```bash
-# Use local CLI during development
-npm run build && mycmail inbox
+git clone https://github.com/treebird7/Myceliumail.git
+cd Myceliumail
 
-# Watch mode for development
-npm run dev
+# Install CLI dependencies
+npm install
 
-# Run the MCP server locally
-cd mcp-server && npm run dev
+# Install MCP server dependencies
+cd mcp-server && npm install && cd ..
+
+# Build both
+npm run build
+cd mcp-server && npm run build && cd ..
 ```
 
-## Coding Standards
-
-### TypeScript
-
-- Use TypeScript for all new code
-- Enable strict mode (`"strict": true`)
-- Prefer `const` over `let`, avoid `var`
-- Use explicit types for function parameters and return values
-
-### Style Guide
-
-- Use 2-space indentation
-- Use single quotes for strings
-- Include trailing commas in multi-line arrays/objects
-- Maximum line length: 100 characters
-
-### Commit Messages
-
-We follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-**Types:**
-- `feat:` — New feature
-- `fix:` — Bug fix
-- `docs:` — Documentation only
-- `style:` — Formatting, no code change
-- `refactor:` — Code change that neither fixes a bug nor adds a feature
-- `test:` — Adding or updating tests
-- `chore:` — Build process or auxiliary tool changes
-
-**Examples:**
-```
-feat(cli): add channel support
-fix(crypto): handle empty key gracefully
-docs: update MCP setup instructions
-```
-
-## Pull Request Process
-
-1. **Fork & Branch** — Fork the repo and create a feature branch from `main`
-   ```bash
-   git checkout -b feat/my-feature
-   ```
-
-2. **Make Changes** — Write code, add tests, update documentation
-
-3. **Test** — Run the test suite
-   ```bash
-   npm test
-   npm run lint
-   ```
-
-4. **Commit** — Use conventional commit messages
-
-5. **Push & PR** — Push your branch and open a Pull Request
-   - Fill out the PR template completely
-   - Link related issues
-   - Request review
-
-6. **Iterate** — Address feedback, update as needed
-
-### PR Requirements
-
-- [ ] Tests pass (`npm test`)
-- [ ] Linting passes (`npm run lint`)
-- [ ] Documentation updated if needed
-- [ ] Commit messages follow conventions
-- [ ] No sensitive data (keys, secrets) committed
-
-## Testing
-
-### Running Tests
+## Testing Locally
 
 ```bash
-# Run all tests
-npm test
+# CLI
+node dist/bin/mycmail.js --help
+node dist/bin/mycmail.js inbox
 
-# Run tests in watch mode
-npm run test:watch
-
-# Run with coverage
-npm run test:coverage
+# MCP Server
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | \
+  MYCELIUMAIL_AGENT_ID=test node mcp-server/dist/server.js
 ```
 
-### Writing Tests
+## Environment Variables
 
-- Place tests in `__tests__/` directories or use `.test.ts` suffix
-- Use descriptive test names: `should encrypt message with recipient key`
-- Mock external services (Supabase, file system)
-- Test edge cases (empty inputs, missing keys, network failures)
+Create a `.env` file:
+```
+MYCELIUMAIL_AGENT_ID=your-agent-id
+SUPABASE_URL=your-supabase-url
+SUPABASE_ANON_KEY=your-anon-key
+```
+
+## Pull Requests
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Make your changes
+4. Run builds: `npm run build` (both CLI and MCP)
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to your fork (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
+
+## Code Style
+
+- TypeScript with strict mode
+- Use async/await over callbacks
+- Add JSDoc comments for public APIs
+- Keep encryption logic in `lib/crypto.ts`
+- Keep network logic in `lib/supabase.ts`
 
 ## Security
 
-Found a vulnerability? **Please don't open a public issue.** See [SECURITY.md](SECURITY.md) for responsible disclosure.
+- Never log private keys or message content
+- All messages must be encrypted client-side
+- Use NaCl (TweetNaCl.js) for cryptography
+- Report security issues privately to security@treebird.uk
 
-## Code of Conduct
+## Issues
 
-We expect all contributors to follow our [Code of Conduct](CODE_OF_CONDUCT.md). Be respectful, inclusive, and constructive.
+Found a bug? Have a feature request? Please open an issue on GitHub:
+https://github.com/treebird7/Myceliumail/issues
 
-## Getting Help
+## License
 
-- **GitHub Issues** — For bugs and feature requests
-- **Email** — treebird@treebird.dev
-- **Twitter/X** — [@treebird7](https://twitter.com/treebird7)
-
-## Recognition
-
-Contributors are recognized in release notes and the project's contributor list. Significant contributions may be highlighted in project announcements.
+By contributing, you agree that your contributions will be licensed under the MIT License.
 
 ---
 
-Thank you for helping make Myceliumail better! 🌲
+*"The mycelium connects all."* 🍄🌳
