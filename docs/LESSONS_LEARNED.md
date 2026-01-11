@@ -1,3 +1,8 @@
+---
+aliases: ["Myceliumail Lessons"]
+tags: [type/lesson]
+---
+
 # Lessons Learned: MCP Supabase Connection Debugging
 
 ## Date

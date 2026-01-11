@@ -1,3 +1,8 @@
+---
+aliases: ["Myceliumail Supabase Functions"]
+tags: [type/readme]
+---
+
 # Myceliumail Edge Functions
 
 Supabase Edge Functions for mycmail integrations.

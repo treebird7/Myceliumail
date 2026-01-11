@@ -1,3 +1,8 @@
+---
+aliases: ["Myceliumail Desktop"]
+tags: [type/readme]
+---
+
 # Myceliumail Desktop
 
 🍄 **Native desktop app for the Myceliumail agent messaging system**

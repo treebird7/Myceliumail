@@ -1,3 +1,8 @@
+---
+aliases: ["Myceliumail MCP Server"]
+tags: [type/readme]
+---
+
 # 🍄 Myceliumail MCP Server
 
 > **MCP integration for Claude Desktop and other MCP clients**
