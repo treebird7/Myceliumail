@@ -931,6 +931,7 @@ server.tool(
         const hasEncKeys = crypto.hasKeyPair(agentId);
         const hasSignKeys = crypto.hasSigningKeyPair(agentId);
         const knownPeers = Object.keys(crypto.loadKnownKeys()).length;
+        const hasTimeout = typeof AbortSignal.timeout === "function";
 
         // Try to fetch from storage to check connection
         let storageStatus = '❓ Unknown';
@@ -938,7 +939,7 @@ server.tool(
             await storage.getInbox(agentId, { limit: 1 });
             storageStatus = '✅ Connected';
         } catch (e) {
-            storageStatus = `❌ Error: ${e}`;
+            storageStatus = `❌ Error: ${e} (Node ${process.version})`;
         }
 
         return {
@@ -951,6 +952,7 @@ server.tool(
 🔑 Encryption Keys: ${hasEncKeys ? '✅ Yes' : '❌ No'}
 ✍️ Signing Keys: ${hasSignKeys ? '✅ Yes' : '❌ No'}
 👥 Known Peers: ${knownPeers}
+🛠️ Diagnostics: Direct Fetch Timeout: ${hasTimeout ? "✅ Supported" : "❌ Missing"}
 
 ${agentId === 'anonymous' ? '⚠️ Set MYCELIUMAIL_AGENT_ID to configure your identity.' : ''}`
             }],
@@ -1485,6 +1487,7 @@ server.prompt(
         const hasEncKeys = crypto.hasKeyPair(agentId);
         const hasSignKeys = crypto.hasSigningKeyPair(agentId);
         const knownPeers = Object.keys(crypto.loadKnownKeys()).length;
+        const hasTimeout = typeof AbortSignal.timeout === "function";
 
         const { existsSync } = await import('fs');
         const { join } = await import('path');
@@ -1589,6 +1592,7 @@ server.tool(
                     senderType: 'agent',
                     text: text,
                     glyph: messageGlyph,
+                    signal: AbortSignal.timeout(5000),
                 }),
             });
 
@@ -1845,6 +1849,24 @@ server.tool(
 async function main() {
     // Verify Pro license before starting
     requireProLicense();
+
+    // Handle EPIPE errors gracefully (Claude Desktop rapid restarts)
+    // This prevents ugly crash stack traces when the pipe is closed
+    process.stdout.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EPIPE') {
+            process.exit(0);  // Clean exit, pipe was closed
+        }
+        console.error('stdout error:', err);
+        process.exit(1);
+    });
+
+    process.stderr.on('error', (err: NodeJS.ErrnoException) => {
+        if (err.code === 'EPIPE') {
+            process.exit(0);
+        }
+        // Can't log to stderr if stderr is broken, just exit
+        process.exit(1);
+    });
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
