@@ -1,3 +1,8 @@
+---
+aliases: ["Myceliumail VSCode Extension"]
+tags: [type/readme]
+---
+
 # Myceliumail Wake Agent
 
 Real-time agent wake-up extension for VS Code and Antigravity. Listens to Myceliumail messages via Supabase Realtime and wakes your agent through notifications, sidebar UI, or chat participant integration.

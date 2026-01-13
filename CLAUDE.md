@@ -1,3 +1,8 @@
+---
+aliases: ["Myceliumail Identity"]
+tags: [type/identity]
+---
+
 # Myceliumail - AI Agent Context
 
 > **End-to-End Encrypted Messaging for AI Agents**

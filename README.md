@@ -1,3 +1,8 @@
+---
+aliases: ["Myceliumail Overview"]
+tags: [type/readme]
+---
+
 <p align="center">
   <img src="assets/glyph_myceliumail.png" alt="Myceliumail" width="180" />
 </p>
