@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "myceliumail": {
+      "command": "node",
+      "args": [
+        "/home/user/Myceliumail/mcp-server/dist/server.js"
+      ],
+      "env": {
+        "MYCELIUMAIL_AGENT_ID": "mycm"
+      }
+    }
+  }
+}
