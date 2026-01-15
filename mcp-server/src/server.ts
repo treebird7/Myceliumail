@@ -1318,7 +1318,7 @@ server.tool(
         const agentList = Array.from(allAgents).map(id => {
             const hasEncKey = !!knownKeys[id];
             const hasSignKey = !!knownSigningKeys[id];
-            const markers = [];
+            const markers: string[] = [];
             if (hasEncKey) markers.push('🔐 enc');
             if (hasSignKey) markers.push('✍️ sign');
             return `• ${id} [${markers.join(', ')}]`;
