@@ -47,6 +47,7 @@ import { createVerifyCommand } from '../commands/verify.js';
 import { createCanaryInitCommand, createCanaryCheckCommand } from '../commands/canary.js';
 import { createFeedbackCommand } from '../commands/feedback.js';
 import { createCleanupCommand } from '../commands/cleanup.js';
+import { createSubscribeCommand } from '../commands/subscribe.js';
 import { checkForUpdates } from '../lib/update-check.js';
 
 const program = new Command();
@@ -103,6 +104,9 @@ program.addCommand(createFeedbackCommand());
 
 // Inbox management
 program.addCommand(createCleanupCommand());
+
+// Memoak integration - memory subscriptions
+program.addCommand(createSubscribeCommand());
 
 // Check for updates (non-blocking, runs in background)
 checkForUpdates().catch(() => { });
