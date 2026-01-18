@@ -9,6 +9,7 @@
 import { Command } from 'commander';
 import { loadConfig } from '../lib/config.js';
 import { loadSubscriptions, shouldNotifyForTags, Subscription } from './subscribe.js';
+import { c, getMemoryTypeColor, getMemoryTypeEmoji, formatTags, formatMemoryNotification } from '../lib/colors.js';
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
@@ -165,12 +166,9 @@ export function createMemoryNotifyCommand(): Command {
             // Check who should be notified based on this agent's subscriptions
             const { immediate, digest, matchedTags } = shouldNotifyForTags(memory.tags);
 
-            // Build notification message
-            const emoji = memory.type === 'lesson' ? '📚' :
-                memory.type === 'win' ? '🎉' :
-                    memory.type === 'pain' ? '😖' :
-                        memory.type === 'insight' ? '💡' :
-                            memory.type === 'pattern' ? '🔄' : '🧠';
+            // Build notification message with semantic colors
+            const emoji = getMemoryTypeEmoji(memory.type);
+            const typeColor = getMemoryTypeColor(memory.type);
 
             const notifyMessage = `${emoji} New ${memory.type}: ${memory.preview.slice(0, 100)}...
 Tags: ${memory.tags.map(t => `#${t}`).join(' ')}
@@ -192,54 +190,51 @@ Author: ${memory.author}
             }
 
             if (options.dryRun) {
-                console.log('🔍 Dry run - would send:\n');
-                console.log('Memory:', memory);
-                console.log('Matched tags:', matchedTags);
-                console.log('Would notify immediately:', immediate);
-                console.log('Would add to digest:', digest);
-                console.log('\nMessage preview:');
-                console.log('---');
-                console.log(notifyMessage);
-                console.log('---');
+                console.log(c.bold('🔍 Dry run - would send:\n'));
+                console.log(formatMemoryNotification(memory));
+                console.log();
+                console.log(`${c.dim('Matched tags:')} ${formatTags(matchedTags)}`);
+                console.log(`${c.dim('Immediate:')} ${immediate ? c.success('yes') : c.dim('no')}`);
+                console.log(`${c.dim('Digest:')} ${digest ? c.info('yes') : c.dim('no')}`);
                 return;
             }
 
             // For now, broadcast to collab channel if immediate notification is on
             if (immediate && matchedTags.length > 0) {
-                console.log(`🔔 Sending via Toaklink...`);
+                console.log(c.bold(`🔔 Sending via Toaklink...`));
 
                 // Send to broadcast channel (special "flock" agent for group messages)
                 const result = await sendToaklink(agentId, 'flock', notifyMessage, hubUrl);
 
                 if (result) {
-                    console.log(`✅ Broadcast sent to #flock`);
-                    console.log(`   Channel: ${result.channel_id}`);
-                    console.log(`   Message: ${result.message_id}`);
+                    console.log(c.success(`✅ Broadcast sent to #flock`));
+                    console.log(c.dim(`   Channel: ${result.channel_id}`));
+                    console.log(c.dim(`   Message: ${result.message_id}`));
                 } else {
-                    console.log(`⚠️  Toaklink send failed - Hub may be offline`);
+                    console.log(c.warning(`⚠️  Toaklink send failed - Hub may be offline`));
                 }
 
                 // If push requested, also send via Toak
                 if (options.push) {
-                    console.log(`📱 Sending push notification...`);
+                    console.log(c.info(`📱 Sending push notification...`));
                     const pushed = await sendToakPush(agentId, memory, hubUrl);
                     if (pushed) {
-                        console.log(`✅ Push notification sent`);
+                        console.log(c.success(`✅ Push notification sent`));
                     } else {
-                        console.log(`⚠️  Push failed`);
+                        console.log(c.warning(`⚠️  Push failed`));
                     }
                 }
             } else {
-                console.log(`📋 Memory ${memoryId} - no immediate notifications triggered`);
+                console.log(c.dim(`📋 Memory ${memoryId} - no immediate notifications triggered`));
                 if (digest) {
-                    console.log(`   Will be included in next digest`);
+                    console.log(c.dim(`   Will be included in next digest`));
                 }
             }
 
-            console.log(`\n📊 Notification complete`);
-            console.log(`   Memory: ${memory.id}`);
-            console.log(`   Tags: ${memory.tags.join(', ')}`);
-            console.log(`   Matched: ${matchedTags.length > 0 ? matchedTags.join(', ') : 'none'}`);
+            console.log();
+            console.log(formatMemoryNotification(memory));
+            console.log();
+            console.log(`${c.dim('Matched:')} ${matchedTags.length > 0 ? formatTags(matchedTags) : c.dim('none')}`);
         });
 }
 
