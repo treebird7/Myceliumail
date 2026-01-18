@@ -35,7 +35,7 @@ export function loadConfig(): Config {
     // Environment variables take precedence
     const envAgentId = process.env.MYCELIUMAIL_AGENT_ID || process.env.MYCELIUMAIL_AGENT;
     const envSupabaseUrl = process.env.SUPABASE_URL;
-    const envSupabaseKey = process.env.SUPABASE_ANON_KEY;
+    const envSupabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
     const envStorageMode = process.env.MYCELIUMAIL_STORAGE as 'auto' | 'supabase' | 'local' | undefined;
     const envHubUrl = process.env.HUB_URL;
 

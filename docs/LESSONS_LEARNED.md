@@ -447,3 +447,32 @@ function validatePathWithinCwd(filePath: string): string {
 - docs/ folder (for strategy docs)
 - LESSONS_LEARNED.md (for patterns)
 
+
+---
+
+# Session: January 16, 2026
+
+## HIGH Confidence Patterns
+
+| Pattern | Source |
+|---------|--------|
+| **Check before creating** | Created FlockView repo when Hub already had it |
+| **Small edits = direct, big builds = invoak** | User feedback |
+| **Hub is the source of truth for FlockView** | Architecture knowledge |
+
+## MEDIUM Confidence Patterns
+
+| Pattern | Notes |
+|---------|-------|
+| **Llama gives plans, not code** | May need prompt engineering |
+| **Wiki links use vscode:// URI** | Browser-to-editor integration |
+
+## Key Files Changed
+
+- `Watsan/src/commands/tools-status.ts` — Unified health command
+- `treebird-hub/server.js` — FlockView auth
+- `treebird-hub/flockview.js` — Wiki link support
+
+---
+
+*Last updated: 2026-01-17*

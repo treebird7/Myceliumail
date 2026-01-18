@@ -46,6 +46,7 @@ import { createSignCommand, createSignKeygenCommand } from '../commands/sign.js'
 import { createVerifyCommand } from '../commands/verify.js';
 import { createCanaryInitCommand, createCanaryCheckCommand } from '../commands/canary.js';
 import { createFeedbackCommand } from '../commands/feedback.js';
+import { createCleanupCommand } from '../commands/cleanup.js';
 import { checkForUpdates } from '../lib/update-check.js';
 
 const program = new Command();
@@ -99,6 +100,9 @@ program.addCommand(createLicenseStatusCommand());
 
 // Feedback
 program.addCommand(createFeedbackCommand());
+
+// Inbox management
+program.addCommand(createCleanupCommand());
 
 // Check for updates (non-blocking, runs in background)
 checkForUpdates().catch(() => { });
