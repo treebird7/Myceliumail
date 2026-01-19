@@ -114,7 +114,7 @@ export async function sendMessage(
         sender: sender,
         recipient: recipient,
         subject: options?.encrypted ? '🔒 [Encrypted Message]' : subject,
-        message: options?.encrypted ? JSON.stringify({
+        body: options?.encrypted ? JSON.stringify({
             ciphertext: options?.ciphertext,
             nonce: options?.nonce,
             sender_public_key: options?.senderPublicKey,
@@ -127,7 +127,7 @@ export async function sendMessage(
         sender: string;
         recipient: string;
         subject: string;
-        message: string;
+        body: string;
         encrypted: boolean;
         read: boolean;
         created_at: string;
@@ -137,11 +137,11 @@ export async function sendMessage(
     });
 
     // Parse encrypted message if needed
-    let parsedMessage = result.message;
+    let parsedMessage = result.body;
     let ciphertext, nonce, senderPublicKey;
-    if (result.encrypted && result.message) {
+    if (result.encrypted && result.body) {
         try {
-            const encrypted = JSON.parse(result.message);
+            const encrypted = JSON.parse(result.body);
             ciphertext = encrypted.ciphertext;
             nonce = encrypted.nonce;
             senderPublicKey = encrypted.sender_public_key;
@@ -155,7 +155,7 @@ export async function sendMessage(
         sender: result.sender,
         recipient: result.recipient,
         subject: result.subject || '',
-        body: result.encrypted ? '' : result.message,
+        body: result.encrypted ? '' : result.body,
         encrypted: result.encrypted,
         ciphertext,
         nonce,
@@ -191,7 +191,7 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
         sender: string;
         recipient: string;
         subject: string;
-        message: string;
+        body: string;
         encrypted: boolean;
         read: boolean;
         created_at: string;
@@ -199,10 +199,10 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
 
     return results.map(r => {
         // Parse encrypted message
-        let ciphertext, nonce, senderPublicKey, body = r.message;
-        if (r.encrypted && r.message) {
+        let ciphertext, nonce, senderPublicKey, body = r.body;
+        if (r.encrypted && r.body) {
             try {
-                const enc = JSON.parse(r.message);
+                const enc = JSON.parse(r.body);
                 ciphertext = enc.ciphertext;
                 nonce = enc.nonce;
                 senderPublicKey = enc.sender_public_key;
@@ -262,7 +262,7 @@ export async function getMultiAgentInbox(agentIds: string[], options?: InboxOpti
         sender: string;
         recipient: string;
         subject: string;
-        message: string;
+        body: string;
         encrypted: boolean;
         read: boolean;
         created_at: string;
@@ -270,10 +270,10 @@ export async function getMultiAgentInbox(agentIds: string[], options?: InboxOpti
 
     return results.map(r => {
         // Parse encrypted message
-        let ciphertext, nonce, senderPublicKey, body = r.message;
-        if (r.encrypted && r.message) {
+        let ciphertext, nonce, senderPublicKey, body = r.body;
+        if (r.encrypted && r.body) {
             try {
-                const enc = JSON.parse(r.message);
+                const enc = JSON.parse(r.body);
                 ciphertext = enc.ciphertext;
                 nonce = enc.nonce;
                 senderPublicKey = enc.sender_public_key;
@@ -345,7 +345,7 @@ export async function getMessage(id: string): Promise<Message | null> {
             sender: string;
             recipient: string;
             subject: string;
-            message: string;
+            body: string;
             encrypted: boolean;
             read: boolean;
             created_at: string;
@@ -355,10 +355,10 @@ export async function getMessage(id: string): Promise<Message | null> {
         if (!r) return null;
 
         // Parse encrypted message
-        let ciphertext, nonce, senderPublicKey, body = r.message;
-        if (r.encrypted && r.message) {
+        let ciphertext, nonce, senderPublicKey, body = r.body;
+        if (r.encrypted && r.body) {
             try {
-                const enc = JSON.parse(r.message);
+                const enc = JSON.parse(r.body);
                 ciphertext = enc.ciphertext;
                 nonce = enc.nonce;
                 senderPublicKey = enc.sender_public_key;
@@ -392,7 +392,7 @@ export async function getMessage(id: string): Promise<Message | null> {
         sender: string;
         recipient: string;
         subject: string;
-        message: string;
+        body: string;
         encrypted: boolean;
         read: boolean;
         created_at: string;
@@ -403,10 +403,10 @@ export async function getMessage(id: string): Promise<Message | null> {
     const r = results[0];
 
     // Parse encrypted message
-    let ciphertext, nonce, senderPublicKey, body = r.message;
-    if (r.encrypted && r.message) {
+    let ciphertext, nonce, senderPublicKey, body = r.body;
+    if (r.encrypted && r.body) {
         try {
-            const enc = JSON.parse(r.message);
+            const enc = JSON.parse(r.body);
             ciphertext = enc.ciphertext;
             nonce = enc.nonce;
             senderPublicKey = enc.sender_public_key;

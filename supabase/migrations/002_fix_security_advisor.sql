@@ -11,7 +11,7 @@ DROP VIEW IF EXISTS public.unread_agent_messages;
 CREATE VIEW public.unread_agent_messages 
 WITH (security_invoker = true) AS
 SELECT * FROM public.agent_messages 
-WHERE read_at IS NULL;
+WHERE read = false;
 
 -- ============================================
 -- DONE! Run "Rerun linter" in Security Advisor
