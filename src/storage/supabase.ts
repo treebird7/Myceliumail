@@ -111,8 +111,8 @@ export async function sendMessage(
     }
 
     const payload = {
-        from_agent: sender,
-        to_agent: recipient,
+        sender: sender,
+        recipient: recipient,
         subject: options?.encrypted ? '🔒 [Encrypted Message]' : subject,
         message: options?.encrypted ? JSON.stringify({
             ciphertext: options?.ciphertext,
@@ -124,8 +124,8 @@ export async function sendMessage(
 
     const [result] = await supabaseRequest<Array<{
         id: string;
-        from_agent: string;
-        to_agent: string;
+        sender: string;
+        recipient: string;
         subject: string;
         message: string;
         encrypted: boolean;
@@ -152,8 +152,8 @@ export async function sendMessage(
 
     return {
         id: result.id,
-        sender: result.from_agent,
-        recipient: result.to_agent,
+        sender: result.sender,
+        recipient: result.recipient,
         subject: result.subject || '',
         body: result.encrypted ? '' : result.message,
         encrypted: result.encrypted,
@@ -188,8 +188,8 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
 
     const results = await supabaseRequest<Array<{
         id: string;
-        from_agent: string;
-        to_agent: string;
+        sender: string;
+        recipient: string;
         subject: string;
         message: string;
         encrypted: boolean;
@@ -211,8 +211,8 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
         }
         return {
             id: r.id,
-            sender: r.from_agent,
-            recipient: r.to_agent,
+            sender: r.sender,
+            recipient: r.recipient,
             subject: r.subject || '',
             body,
             encrypted: r.encrypted,
@@ -259,8 +259,8 @@ export async function getMultiAgentInbox(agentIds: string[], options?: InboxOpti
 
     const results = await supabaseRequest<Array<{
         id: string;
-        from_agent: string;
-        to_agent: string;
+        sender: string;
+        recipient: string;
         subject: string;
         message: string;
         encrypted: boolean;
@@ -282,8 +282,8 @@ export async function getMultiAgentInbox(agentIds: string[], options?: InboxOpti
         }
         return {
             id: r.id,
-            sender: r.from_agent,
-            recipient: r.to_agent,
+            sender: r.sender,
+            recipient: r.recipient,
             subject: r.subject || '',
             body,
             encrypted: r.encrypted,
@@ -342,8 +342,8 @@ export async function getMessage(id: string): Promise<Message | null> {
     if (id.length < 36) {
         const results = await supabaseRequest<Array<{
             id: string;
-            from_agent: string;
-            to_agent: string;
+            sender: string;
+            recipient: string;
             subject: string;
             message: string;
             encrypted: boolean;
@@ -368,8 +368,8 @@ export async function getMessage(id: string): Promise<Message | null> {
 
         const message: Message = {
             id: r.id,
-            sender: r.from_agent,
-            recipient: r.to_agent,
+            sender: r.sender,
+            recipient: r.recipient,
             subject: r.subject || '',
             body,
             encrypted: r.encrypted,
@@ -389,8 +389,8 @@ export async function getMessage(id: string): Promise<Message | null> {
     // Full UUID - exact match
     const results = await supabaseRequest<Array<{
         id: string;
-        from_agent: string;
-        to_agent: string;
+        sender: string;
+        recipient: string;
         subject: string;
         message: string;
         encrypted: boolean;
@@ -416,8 +416,8 @@ export async function getMessage(id: string): Promise<Message | null> {
 
     const message: Message = {
         id: r.id,
-        sender: r.from_agent,
-        recipient: r.to_agent,
+        sender: r.sender,
+        recipient: r.recipient,
         subject: r.subject || '',
         body,
         encrypted: r.encrypted,
