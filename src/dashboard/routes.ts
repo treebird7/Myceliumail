@@ -147,12 +147,13 @@ export async function registerRoutes(fastify: FastifyInstance) {
         };
     });
 
-    // GET /api/config - Provide config for frontend Realtime
+    // GET /api/config - Provide config for frontend (NO SECRETS!)
+    // SECURITY: Never expose supabaseKey to browser - use server-side proxy instead
     fastify.get('/api/config', async (request, reply) => {
         return {
             agentId: config.agentId,
-            supabaseUrl: config.supabaseUrl,
-            supabaseKey: config.supabaseKey
+            // supabaseUrl and supabaseKey removed for security
+            // Frontend should use /api/* endpoints which proxy to Supabase server-side
         };
     });
 
@@ -176,8 +177,8 @@ export async function registerRoutes(fastify: FastifyInstance) {
             return result;
         } catch (error) {
             console.error('Webhook error:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 processed: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
                 timestamp: new Date().toISOString()
