@@ -56,9 +56,13 @@ export function loadConfig(): Config {
         }
     }
 
+    // SECURITY: Validate agentId to prevent path traversal and command injection
+    const rawAgentId = (envAgentId || fileConfig.agentId || 'anonymous').toLowerCase();
+    const validAgentId = validateAgentId(rawAgentId);
+
     // Merge with env taking precedence
     const config: Config = {
-        agentId: (envAgentId || fileConfig.agentId || 'anonymous').toLowerCase(),
+        agentId: validAgentId,
         supabaseUrl: envSupabaseUrl || fileConfig.supabaseUrl,
         supabaseKey: envSupabaseKey || fileConfig.supabaseKey,
         storageMode: envStorageMode || fileConfig.storageMode || 'auto',
@@ -66,6 +70,29 @@ export function loadConfig(): Config {
     };
 
     return config;
+}
+
+/**
+ * Validate agent ID - prevent path traversal and injection
+ * @throws Error if invalid
+ */
+function validateAgentId(agentId: string): string {
+    // Only allow alphanumeric, hyphen, underscore (max 50 chars)
+    const VALID_AGENT_ID = /^[a-z0-9][a-z0-9_-]{0,49}$/;
+
+    if (!agentId || typeof agentId !== 'string') {
+        console.warn('⚠️ Invalid agent ID, using "anonymous"');
+        return 'anonymous';
+    }
+
+    if (!VALID_AGENT_ID.test(agentId)) {
+        console.warn(`⚠️ Invalid agent ID "${agentId.slice(0, 20)}...", using sanitized version`);
+        // Sanitize: remove invalid chars, keep only safe ones
+        const sanitized = agentId.replace(/[^a-z0-9_-]/g, '').slice(0, 50) || 'anonymous';
+        return sanitized;
+    }
+
+    return agentId;
 }
 
 /**
