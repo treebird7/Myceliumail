@@ -5,7 +5,7 @@
  */
 
 import { createClient, RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
-import { loadConfig, hasSupabaseConfig } from './config.js';
+import { loadConfig } from './config.js';
 
 interface RealtimeMessage {
     id: string;
@@ -36,12 +36,14 @@ function getClient(): SupabaseClient | null {
 
     const config = loadConfig();
 
-    if (!hasSupabaseConfig(config)) {
+    const realtimeKey = config.supabaseAnonKey || config.supabaseKey;
+
+    if (!config.supabaseUrl || !realtimeKey) {
         console.error('❌ Supabase not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.');
         return null;
     }
 
-    supabaseClient = createClient(config.supabaseUrl!, config.supabaseKey!, {
+    supabaseClient = createClient(config.supabaseUrl!, realtimeKey, {
         realtime: {
             params: {
                 eventsPerSecond: 10,

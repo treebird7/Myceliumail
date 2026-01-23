@@ -4,7 +4,7 @@
  * Stores messages in a local JSON file for offline/testing use.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { randomUUID } from 'crypto';
@@ -43,7 +43,12 @@ function loadMessages(): StoredMessage[] {
  */
 function saveMessages(messages: StoredMessage[]): void {
     ensureDataDir();
-    writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2));
+    writeFileSync(MESSAGES_FILE, JSON.stringify(messages, null, 2), { mode: 0o600 });
+    try {
+        chmodSync(MESSAGES_FILE, 0o600);
+    } catch {
+        // Best effort on platforms that don't support chmod
+    }
 }
 
 /**

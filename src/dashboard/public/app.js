@@ -35,7 +35,7 @@ async function setupRealtime() {
         const res = await fetch('/api/config');
         const config = await res.json();
 
-        if (!config.supabaseUrl || !config.supabaseKey) {
+        if (!config.supabaseUrl || !config.supabaseAnonKey) {
             console.log('Supabase not configured, using polling only');
             return;
         }
@@ -44,7 +44,7 @@ async function setupRealtime() {
         currentAgentId = agentId;
         console.log('🍄 Setting up Realtime for', agentId);
 
-        supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseKey);
+        supabaseClient = supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
 
         realtimeChannel = supabaseClient
             .channel('dashboard-inbox')

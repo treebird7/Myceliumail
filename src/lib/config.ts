@@ -4,9 +4,10 @@
  * Handles loading agent configuration from environment or config file.
  */
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { extractAgentId, isValidAgentId } from './validation.js';
 
 const CONFIG_DIR = join(homedir(), '.myceliumail');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
@@ -15,6 +16,7 @@ export interface Config {
     agentId: string;
     supabaseUrl?: string;
     supabaseKey?: string;
+    supabaseAnonKey?: string;
     storageMode: 'auto' | 'supabase' | 'local';
     hubUrl?: string;  // Treebird Hub WebSocket URL (Sprint 3)
 }
@@ -28,6 +30,42 @@ function ensureConfigDir(): void {
     }
 }
 
+function normalizeAgentId(input: string | undefined): string {
+    const candidate = (input || '').toLowerCase();
+    if (!candidate) {
+        console.warn('⚠️ Invalid agent ID, using "anonymous"');
+        return 'anonymous';
+    }
+
+    if (isValidAgentId(candidate)) {
+        return candidate;
+    }
+
+    const extracted = extractAgentId(candidate);
+    if (extracted) {
+        console.warn(`⚠️ Invalid agent ID "${candidate.slice(0, 20)}...", using "${extracted}"`);
+        return extracted;
+    }
+
+    console.warn('⚠️ Invalid agent ID, using "anonymous"');
+    return 'anonymous';
+}
+
+function isSupabaseAnonKey(key?: string): boolean {
+    if (!key) return false;
+    const parts = key.split('.');
+    if (parts.length !== 3) return false;
+    try {
+        const payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const padded = payload.padEnd(payload.length + (4 - (payload.length % 4)) % 4, '=');
+        const decoded = Buffer.from(padded, 'base64').toString('utf-8');
+        const parsed = JSON.parse(decoded) as { role?: string };
+        return parsed.role === 'anon';
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Load configuration from file or environment
  */
@@ -35,7 +73,8 @@ export function loadConfig(): Config {
     // Environment variables take precedence
     const envAgentId = process.env.MYCELIUMAIL_AGENT_ID || process.env.MYCELIUMAIL_AGENT;
     const envSupabaseUrl = process.env.SUPABASE_URL;
-    const envSupabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+    const envSupabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const envSupabaseAnonKey = process.env.SUPABASE_ANON_KEY;
     const envStorageMode = process.env.MYCELIUMAIL_STORAGE as 'auto' | 'supabase' | 'local' | undefined;
     const envHubUrl = process.env.HUB_URL;
 
@@ -49,6 +88,7 @@ export function loadConfig(): Config {
                 agentId: parsed.agent_id,
                 supabaseUrl: parsed.supabase_url,
                 supabaseKey: parsed.supabase_key,
+                supabaseAnonKey: parsed.supabase_anon_key,
                 storageMode: parsed.storage_mode,
             };
         } catch {
@@ -56,43 +96,28 @@ export function loadConfig(): Config {
         }
     }
 
-    // SECURITY: Validate agentId to prevent path traversal and command injection
-    const rawAgentId = (envAgentId || fileConfig.agentId || 'anonymous').toLowerCase();
-    const validAgentId = validateAgentId(rawAgentId);
+    const rawAgentId = envAgentId || fileConfig.agentId || 'anonymous';
+    const validAgentId = normalizeAgentId(rawAgentId);
+    const supabaseKey = envSupabaseServiceKey
+        || envSupabaseAnonKey
+        || fileConfig.supabaseKey
+        || fileConfig.supabaseAnonKey;
+    const fileAnonKey = fileConfig.supabaseAnonKey
+        || (fileConfig.supabaseKey && isSupabaseAnonKey(fileConfig.supabaseKey)
+            ? fileConfig.supabaseKey
+            : undefined);
 
     // Merge with env taking precedence
     const config: Config = {
         agentId: validAgentId,
         supabaseUrl: envSupabaseUrl || fileConfig.supabaseUrl,
-        supabaseKey: envSupabaseKey || fileConfig.supabaseKey,
+        supabaseKey,
+        supabaseAnonKey: envSupabaseAnonKey || fileAnonKey,
         storageMode: envStorageMode || fileConfig.storageMode || 'auto',
         hubUrl: envHubUrl || fileConfig.hubUrl,
     };
 
     return config;
-}
-
-/**
- * Validate agent ID - prevent path traversal and injection
- * @throws Error if invalid
- */
-function validateAgentId(agentId: string): string {
-    // Only allow alphanumeric, hyphen, underscore (max 50 chars)
-    const VALID_AGENT_ID = /^[a-z0-9][a-z0-9_-]{0,49}$/;
-
-    if (!agentId || typeof agentId !== 'string') {
-        console.warn('⚠️ Invalid agent ID, using "anonymous"');
-        return 'anonymous';
-    }
-
-    if (!VALID_AGENT_ID.test(agentId)) {
-        console.warn(`⚠️ Invalid agent ID "${agentId.slice(0, 20)}...", using sanitized version`);
-        // Sanitize: remove invalid chars, keep only safe ones
-        const sanitized = agentId.replace(/[^a-z0-9_-]/g, '').slice(0, 50) || 'anonymous';
-        return sanitized;
-    }
-
-    return agentId;
 }
 
 /**
@@ -115,8 +140,14 @@ export function saveConfig(config: Partial<Config>): void {
     if (config.agentId) existing.agent_id = config.agentId;
     if (config.supabaseUrl) existing.supabase_url = config.supabaseUrl;
     if (config.supabaseKey) existing.supabase_key = config.supabaseKey;
+    if (config.supabaseAnonKey) existing.supabase_anon_key = config.supabaseAnonKey;
 
-    writeFileSync(CONFIG_FILE, JSON.stringify(existing, null, 2));
+    writeFileSync(CONFIG_FILE, JSON.stringify(existing, null, 2), { mode: 0o600 });
+    try {
+        chmodSync(CONFIG_FILE, 0o600);
+    } catch {
+        // Best effort on platforms that don't support chmod
+    }
 }
 
 /**

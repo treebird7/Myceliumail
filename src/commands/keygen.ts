@@ -48,7 +48,7 @@ export function createKeygenCommand(): Command {
 
             // Envault Integration (with secure cleanup)
             if (options.vault) {
-                const { execSync } = await import('child_process');
+                const { execFileSync } = await import('child_process');
                 const { join } = await import('path');
                 const { copyFileSync, rmSync, existsSync } = await import('fs');
                 const { homedir } = await import('os');
@@ -76,7 +76,7 @@ export function createKeygenCommand(): Command {
 
                     // 4. Encrypt using Envault
                     console.log('\n🔒 Encrypting to Envault...');
-                    execSync(`envault file push ${destFileName} ${destEncName}`, { stdio: 'inherit' });
+                    execFileSync('envault', ['file', 'push', destFileName, destEncName], { stdio: 'inherit' });
                     console.log('✅ Key securely backed up to ' + destEncName);
 
                 } catch (err: any) {
