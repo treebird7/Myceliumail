@@ -8,7 +8,7 @@
 import { loadConfig, hasSupabaseConfig } from '../lib/config.js';
 import type { Message, InboxOptions } from '../types/index.js';
 import * as local from './local.js';
-import { validateAgentId } from '../lib/validation.js';
+import { validateAgentId, isValidAgentId } from '../lib/validation.js';
 
 // Simple fetch-based Supabase client (no dependencies)
 interface SupabaseClient {
@@ -38,6 +38,22 @@ function createClient(): SupabaseClient | null {
         url: config.supabaseUrl!,
         key: config.supabaseKey!,
     };
+}
+
+function normalizeAgentIdForQuery(agentId: string): string {
+    const normalized = agentId.toLowerCase();
+    validateAgentId(normalized, 'agent_id');
+    return normalized;
+}
+
+function filterAgentIdsForQuery(agentIds: string[]): string[] {
+    const normalized = agentIds.map(id => id.toLowerCase());
+    const valid = normalized.filter(id => isValidAgentId(id));
+    return Array.from(new Set(valid));
+}
+
+function encodeFilterValue(value: string): string {
+    return encodeURIComponent(value);
 }
 
 async function supabaseRequest<T>(
@@ -171,12 +187,13 @@ export async function sendMessage(
  */
 export async function getInbox(agentId: string, options?: InboxOptions): Promise<Message[]> {
     const client = createClient();
+    const normalizedAgentId = normalizeAgentIdForQuery(agentId);
 
     if (!client) {
-        return local.getInbox(agentId, options);
+        return local.getInbox(normalizedAgentId, options);
     }
 
-    let query = `/agent_messages?to_agent=eq.${agentId}&order=created_at.desc`;
+    let query = `/agent_messages?to_agent=eq.${encodeFilterValue(normalizedAgentId)}&order=created_at.desc`;
 
     if (options?.unreadOnly) {
         query += '&read=eq.false';
@@ -231,12 +248,13 @@ export async function getInbox(agentId: string, options?: InboxOptions): Promise
  */
 export async function getMultiAgentInbox(agentIds: string[], options?: InboxOptions): Promise<Message[]> {
     const client = createClient();
+    const normalizedAgentIds = filterAgentIdsForQuery(agentIds);
 
-    if (!client || agentIds.length === 0) {
+    if (!client || normalizedAgentIds.length === 0) {
         // For local storage, aggregate from all agents
-        if (agentIds.length === 0) return [];
+        if (normalizedAgentIds.length === 0) return [];
         const allMessages: Message[] = [];
-        for (const agentId of agentIds) {
+        for (const agentId of normalizedAgentIds) {
             const msgs = await local.getInbox(agentId, options);
             allMessages.push(...msgs);
         }
@@ -246,7 +264,7 @@ export async function getMultiAgentInbox(agentIds: string[], options?: InboxOpti
     }
 
     // Build query with IN clause for multiple agents
-    const agentList = agentIds.map(id => `"${id}"`).join(',');
+    const agentList = normalizedAgentIds.map(id => `"${id}"`).join(',');
     let query = `/agent_messages?to_agent=in.(${agentList})&order=created_at.desc`;
 
     if (options?.unreadOnly) {
@@ -327,19 +345,22 @@ function cacheMessage(message: Message): void {
 }
 
 export async function getMessage(id: string): Promise<Message | null> {
+    const normalizedId = id.trim();
+    if (!normalizedId) return null;
+
     // Check cache first
-    const cached = getCachedMessage(id);
+    const cached = getCachedMessage(normalizedId);
     if (cached) return cached;
 
     const client = createClient();
 
     if (!client) {
-        return local.getMessage(id);
+        return local.getMessage(normalizedId);
     }
 
     // For partial IDs, fetch recent messages and filter client-side
     // OPTIMIZED: Reduced from 100 to 20 rows
-    if (id.length < 36) {
+    if (normalizedId.length < 36) {
         const results = await supabaseRequest<Array<{
             id: string;
             sender: string;
@@ -351,7 +372,7 @@ export async function getMessage(id: string): Promise<Message | null> {
             created_at: string;
         }>>(client, `/agent_messages?order=created_at.desc&limit=20`);
 
-        const r = results.find(row => row.id.startsWith(id));
+        const r = results.find(row => row.id.startsWith(normalizedId));
         if (!r) return null;
 
         // Parse encrypted message
@@ -396,7 +417,7 @@ export async function getMessage(id: string): Promise<Message | null> {
         encrypted: boolean;
         read: boolean;
         created_at: string;
-    }>>(client, `/agent_messages?id=eq.${id}`);
+    }>>(client, `/agent_messages?id=eq.${encodeFilterValue(normalizedId)}`);
 
     if (results.length === 0) return null;
 
@@ -439,21 +460,23 @@ export async function getMessage(id: string): Promise<Message | null> {
  */
 export async function markAsRead(id: string, agentId?: string): Promise<boolean> {
     const client = createClient();
+    const normalizedId = id.trim();
+    if (!normalizedId) return false;
 
     if (!client) {
-        return local.markAsRead(id, agentId);
+        return local.markAsRead(normalizedId, agentId);
     }
 
     // For partial IDs, resolve full UUID first
-    let fullId = id;
-    if (id.length < 36) {
-        const msg = await getMessage(id);
+    let fullId = normalizedId;
+    if (normalizedId.length < 36) {
+        const msg = await getMessage(normalizedId);
         if (!msg) return false;
         fullId = msg.id;
     }
 
     try {
-        await supabaseRequest(client, `/agent_messages?id=eq.${fullId}`, {
+        await supabaseRequest(client, `/agent_messages?id=eq.${encodeFilterValue(fullId)}`, {
             method: 'PATCH',
             body: JSON.stringify({ read: true }),
         });
@@ -468,21 +491,23 @@ export async function markAsRead(id: string, agentId?: string): Promise<boolean>
  */
 export async function archiveMessage(id: string): Promise<boolean> {
     const client = createClient();
+    const normalizedId = id.trim();
+    if (!normalizedId) return false;
 
     if (!client) {
-        return local.archiveMessage(id);
+        return local.archiveMessage(normalizedId);
     }
 
     // For partial IDs, resolve full UUID first
-    let fullId = id;
-    if (id.length < 36) {
-        const msg = await getMessage(id);
+    let fullId = normalizedId;
+    if (normalizedId.length < 36) {
+        const msg = await getMessage(normalizedId);
         if (!msg) return false;
         fullId = msg.id;
     }
 
     try {
-        await supabaseRequest(client, `/agent_messages?id=eq.${fullId}`, {
+        await supabaseRequest(client, `/agent_messages?id=eq.${encodeFilterValue(fullId)}`, {
             method: 'PATCH',
             body: JSON.stringify({ archived: true }),
         });
@@ -497,13 +522,15 @@ export async function archiveMessage(id: string): Promise<boolean> {
  */
 export async function deleteMessage(id: string): Promise<boolean> {
     const client = createClient();
+    const normalizedId = id.trim();
+    if (!normalizedId) return false;
 
     if (!client) {
-        return local.deleteMessage(id);
+        return local.deleteMessage(normalizedId);
     }
 
     try {
-        await supabaseRequest(client, `/agent_messages?id=eq.${id}`, {
+        await supabaseRequest(client, `/agent_messages?id=eq.${encodeFilterValue(normalizedId)}`, {
             method: 'DELETE',
         });
         return true;
@@ -537,4 +564,3 @@ export async function submitFeedback(feedback: {
 
     return result;
 }
-

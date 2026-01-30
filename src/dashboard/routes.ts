@@ -148,11 +148,18 @@ export async function registerRoutes(fastify: FastifyInstance) {
     });
 
     // GET /api/config - Provide config for frontend (NO SECRETS!)
-    // SECURITY: Never expose supabaseKey to browser - use server-side proxy instead
+    // SECURITY: Never expose supabaseKey to browser - use anon key only
     fastify.get('/api/config', async (request, reply) => {
-        return {
+        const response: { agentId: string; supabaseUrl?: string; supabaseAnonKey?: string } = {
             agentId: config.agentId,
-            // supabaseUrl and supabaseKey removed for security
+        };
+
+        if (config.supabaseUrl && config.supabaseAnonKey) {
+            response.supabaseUrl = config.supabaseUrl;
+            response.supabaseAnonKey = config.supabaseAnonKey;
+        }
+        return {
+            ...response,
             // Frontend should use /api/* endpoints which proxy to Supabase server-side
         };
     });

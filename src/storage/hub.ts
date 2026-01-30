@@ -10,6 +10,15 @@ import type { Message, InboxOptions } from '../types/index.js';
 // Hub URL: localhost for dev, hub.treebird.uk for production
 const HUB_URL = process.env.MYCELIUMAIL_HUB_URL || 'http://127.0.0.1:3000';
 
+// Security: Warn if using HTTP for non-localhost URLs
+const isLocalhost = HUB_URL.includes('localhost') || HUB_URL.includes('127.0.0.1');
+if (HUB_URL.startsWith('http://') && !isLocalhost) {
+    console.warn('⚠️  WARNING: Hub URL is using HTTP for a non-localhost address.');
+    console.warn('   Traffic may be intercepted. Use HTTPS in production:');
+    console.warn(`   Current: ${HUB_URL}`);
+    console.warn('   Recommended: Set MYCELIUMAIL_HUB_URL=https://...');
+}
+
 /**
  * Check if Hub is available
  */
