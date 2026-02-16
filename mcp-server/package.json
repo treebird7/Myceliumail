@@ -40,7 +40,7 @@
     },
     "readme": "README.md",
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.25.2",
+        "@modelcontextprotocol/sdk": "^1.26.0",
         "dotenv": "^17.2.3",
         "tweetnacl": "^1.0.3",
         "tweetnacl-util": "^0.15.1",
