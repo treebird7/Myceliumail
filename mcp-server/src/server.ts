@@ -5,6 +5,11 @@
  * 
  * Exposes Myceliumail messaging as MCP tools for Claude Desktop
  * and other MCP-compatible clients.
+ * 
+ * Features:
+ * - Send/receive encrypted messages
+ * - Real-time inbox checking
+ * - Key management for NaCl encryption
  */
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -28,10 +33,13 @@ import { requireProLicense } from './lib/license.js';
 // Track last check time for new message notifications
 let lastCheckTime: Date = new Date();
 
+// Track last check time for new message notifications
+let lastCheckTime: Date = new Date();
+
 // Create the MCP server
 const server = new McpServer({
     name: 'myceliumail',
-    version: '1.0.0',
+    version: '1.0.2',
 });
 
 // Tool: check_inbox
