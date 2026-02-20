@@ -34,7 +34,7 @@
         "url": "https://github.com/treebird/myceliumail/issues"
     },
     "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.0.0",
+        "@modelcontextprotocol/sdk": "^1.26.0",
         "tweetnacl": "^1.0.3",
         "tweetnacl-util": "^0.15.1",
         "zod": "^3.22.0"
