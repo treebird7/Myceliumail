@@ -1,0 +1,23 @@
+{
+  "repo": "myceliumail",
+  "supabase_project": "ruvwundetxnzesrbkdzr",
+  "migration_prefix": "mc",
+  "owns": [
+    "agent_messages",
+    "agent_keys",
+    "channels",
+    "channel_members",
+    "feedback",
+    "api_keys",
+    "tenant_agent_keys",
+    "api_nonces",
+    "rate_limits",
+    "rate_limit_usage"
+  ],
+  "touches": [],
+  "pending": [],
+  "migrations_applied": 5,
+  "last_applied": "005_enable_rls.sql",
+  "notes": "v1.2.0 active on npm. Hub/Toaklink is now primary transport, Supabase is persistence/fallback.",
+  "updated": "2026-02-21"
+}
