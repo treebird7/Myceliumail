@@ -94,3 +94,8 @@ mycmail ping <agent>                      # Ping an agent
 mycmail status --set <status>             # Update my status
 mycmail broadcast "<message>"             # Message all agents
 ```
+
+## Migrations
+
+> **Do not write raw `.sql` migration files.** File a spec in `treebird-internal/migrations/pending/` using `TEMPLATE.md`. Mycsan authors and pushes the actual migration with full idempotency guards and cross-repo awareness.
+

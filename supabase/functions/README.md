@@ -41,6 +41,27 @@ supabase secrets set WEBHOOK_URLS="..." --project-ref YOUR_PROJECT_REF
 
 ---
 
+### toak-api
+
+**Purpose:** Public Myceliumail API for Toaklink (API key + Ed25519 verification)
+
+**Endpoints:** `/v1/toaklink/*` (send, inbox, channel, link, read, recent)
+
+**Required Secrets:**
+```bash
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...
+API_KEY_PEPPER=...
+```
+
+**Deployment:**
+```bash
+supabase functions deploy toak-api --project-ref YOUR_PROJECT_REF
+supabase secrets set API_KEY_PEPPER="..." --project-ref YOUR_PROJECT_REF
+```
+
+---
+
 ## Local Development
 
 ### Prerequisites

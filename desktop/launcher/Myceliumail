@@ -1,4 +1,10 @@
 #!/bin/bash
+# Myceliumail Desktop Launcher
+# Gracefully stop existing instance, then launch
+
+lsof -ti:3737 | xargs kill -15 2>/dev/null || true
+sleep 1
+# Force kill if still running
 lsof -ti:3737 | xargs kill -9 2>/dev/null || true
 sleep 0.5
 exec /Applications/Myceliumail.app/Contents/MacOS/Myceliumail

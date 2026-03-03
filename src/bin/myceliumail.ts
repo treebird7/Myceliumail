@@ -49,6 +49,7 @@ import { createFeedbackCommand } from '../commands/feedback.js';
 import { createCleanupCommand } from '../commands/cleanup.js';
 import { createSubscribeCommand } from '../commands/subscribe.js';
 import { createMemoryNotifyCommand } from '../commands/memory-notify.js';
+import { createPoolCommand } from '../commands/pool.js';
 import { checkForUpdates } from '../lib/update-check.js';
 
 const program = new Command();
@@ -109,6 +110,9 @@ program.addCommand(createCleanupCommand());
 // Memoak integration - memory subscriptions + notifications
 program.addCommand(createSubscribeCommand());
 program.addCommand(createMemoryNotifyCommand());
+
+// Task pool
+program.addCommand(createPoolCommand());
 
 // Check for updates (non-blocking, runs in background)
 checkForUpdates().catch(() => { });
