@@ -3,10 +3,18 @@
     "main": {
       "name": "main",
       "files": [
-        ".gitignore"
+        "CLAUDE.md",
+        "src",
+        "CHANGELOG.md",
+        ".gitignore",
+        ".pending_task.md",
+        ".spidersan/registry.json",
+        "supabase/.temp/cli-latest"
       ],
       "status": "active",
-      "registeredAt": "2026-03-26T22:58:45.416Z"
+      "description": "Myceliumail: agent messaging",
+      "agent": "ssan",
+      "registeredAt": "2026-03-20T08:58:16.869Z"
     }
   },
   "version": "1.0"
