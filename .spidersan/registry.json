@@ -5,11 +5,7 @@
       "files": [
         "CLAUDE.md",
         "src",
-        "CHANGELOG.md",
-        ".gitignore",
-        ".pending_task.md",
-        ".spidersan/registry.json",
-        "supabase/.temp/cli-latest"
+        "CHANGELOG.md"
       ],
       "status": "active",
       "description": "Myceliumail: agent messaging",
