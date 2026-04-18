@@ -21,8 +21,13 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Myceliumail data (if testing locally)
-.myceliumail/
+# Temp audit/security tool scratch dirs
+.tmp-*/
+.tmp_*/
+
+# SQL backups
+*.sql.bak
+
 
 # Logs
 *.log
